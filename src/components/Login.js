@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 
+
+
 function Login({ onLogin }) {
   const [formData, setFormData] = useState({ username: '', password: '' });
 
@@ -7,48 +9,45 @@ function Login({ onLogin }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    alert("Login successful!"); // Mock success message
-    onLogin(); // Update login status in App.js
+    onLogin();
   };
 
   return (
-    <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-        <h2 className="mt-10 text-center text-2xl font-bold tracking-tight text-gray-900">
-          Sign in to your account
+    <div className="flex min-h-screen items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full p-8">
+        <h1 className="text-center text-3xl font-bold mb-6">
+          THE INBOX ZING!
+        </h1>
+        
+        <h2 className="text-center text-xl mb-6">
+          Welcome back
         </h2>
-      </div>
 
-      <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-900">
-              Username
-            </label>
-            <div className="mt-2">
+            <div className="mt-1">
               <input
                 id="username"
                 name="username"
                 type="text"
+                placeholder="Username"
                 required
                 onChange={handleChange}
-                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600"
+                className="block w-full bg-gray-200 rounded-sm py-2 px-4 text-gray-900 placeholder-gray-900"
               />
             </div>
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-900">
-              Password
-            </label>
-            <div className="mt-2">
+            <div className="mt-1">
               <input
                 id="password"
                 name="password"
                 type="password"
+                placeholder="Password"
                 required
                 onChange={handleChange}
-                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600"
+                className="block w-full bg-gray-200 rounded-sm py-2 px-4 text-gray-900 placeholder-gray-900"
               />
             </div>
           </div>
@@ -56,10 +55,23 @@ function Login({ onLogin }) {
           <div>
             <button
               type="submit"
-              className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+              className="w-full flex justify-center rounded-sm bg-[#D5C3C6] py-2 px-4 text-black"
             >
               Login
             </button>
+          </div>
+
+          <div className="text-center">
+            <a href="" className="text-black underline">
+              forgot password?
+            </a>
+          </div>
+
+          <div className="text-center">
+            <span>Don't have an account? </span>
+            <a href="SignUp" className="text-black underline">
+              Sign up
+            </a>
           </div>
         </form>
       </div>
