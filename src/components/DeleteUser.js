@@ -1,6 +1,10 @@
+
+
+
 import React from 'react';
 
 function DeleteUser({ onDelete }) {
+  // Function to create the delete button click for deleting the user
   const handleDelete = () => {
     onDelete();
   };
@@ -20,6 +24,7 @@ function DeleteUser({ onDelete }) {
           Are you sure you want to delete your account? This action cannot be undone.
         </p>
 
+        {/* User presses on Delete button to initiates handleDelete */}
         <button 
           onClick={handleDelete} 
           className="w-full flex justify-center rounded-sm bg-[#D5C3C6] py-3 text-black"
@@ -27,6 +32,7 @@ function DeleteUser({ onDelete }) {
           Delete Account
         </button>
         
+        {/* Link to renavigate to settings page */}
         <div className="mt-4 text-center text-sm">
           <a href="/settings" className="text-black underline">
             Go Back
@@ -38,3 +44,10 @@ function DeleteUser({ onDelete }) {
 }
 
 export default DeleteUser;
+
+
+
+
+
+
+
