@@ -1,5 +1,3 @@
-# InboxZingFrontend
-```markdown
 # 📬 Inbox Zing - Frontend Application
 
 Welcome to **Inbox Zing!** 🎉 This React-based application is designed to bring you the latest news and updates from various media outlets, all in one place. Enjoy a sleek, intuitive interface with easy navigation options to set your preferences, customize your experience, and stay informed.
@@ -43,19 +41,15 @@ To set up Inbox Zing locally, follow these steps:
 1. **Clone the Repository**:
    ```bash
    git clone https://github.com/rohanv32/InboxZingFrontend.git
-   ```
 
 2. **Navigate to the Project Directory**:
    ```bash
    cd InboxZingFrontend
-   ```
 
 3. **Install Dependencies**:
-   Run the following command to install all necessary dependencies:
    ```bash
    npm install
-   ```
-
+   
 ---
 
 ## ▶️ Running the Application
