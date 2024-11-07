@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-function SignUp({ onSignUpComplete }) {
+function SignUp({ onSignUp, onNavigateToLogin }) {
   const [formData, setFormData] = useState({ 
     username: '', 
     email: '', 
@@ -11,7 +11,8 @@ function SignUp({ onSignUpComplete }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSignUpComplete();
+    onSignUp();
+
   };
 
   return (
@@ -106,9 +107,9 @@ function SignUp({ onSignUpComplete }) {
 
           <div className="mt-4 text-center text-sm">
             <span>Already have an account? </span>
-            <a href="/Login" className="text-black underline">
-              Login
-            </a>
+            <button onClick={onNavigateToLogin} className="text-black underline">
+            Login
+          </button>
           </div>
         </form>
       </div>

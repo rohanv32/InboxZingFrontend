@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 
-
-
-function Login({ onLogin }) {
+function Login({ onLogin, onNavigateToSignUp }) {
   const [formData, setFormData] = useState({ username: '', password: '' });
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -69,9 +67,13 @@ function Login({ onLogin }) {
 
           <div className="text-center">
             <span>Don't have an account? </span>
-            <a href="SignUp" className="text-black underline">
+            <button 
+              type="button" 
+              onClick={onNavigateToSignUp} 
+              className="text-black underline"
+            >
               Sign up
-            </a>
+            </button>
           </div>
         </form>
       </div>
