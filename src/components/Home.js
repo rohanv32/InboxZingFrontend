@@ -13,6 +13,7 @@ function Home({ onTabChange }) {
         </h2>
         
         <div className="flex flex-col space-y-4">
+          {/* Sign Up button changes tab to 'SignUp' */}
           <button
             onClick={() => onTabChange('SignUp')}
             className="w-full flex justify-center rounded-sm bg-[#D5C3C6] py-3 text-black"
@@ -20,6 +21,7 @@ function Home({ onTabChange }) {
             Sign Up
           </button>
           
+          {/* Login button changes tab to 'Login' */}
           <button
             onClick={() => onTabChange('Login')}
             className="w-full flex justify-center rounded-sm bg-[#D5C3C6] py-3 text-black"
