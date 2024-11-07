@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Dialog, DialogPanel } from '@headlessui/react';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 
-const Header = ({ isLoggedIn, onLogout, onTabChange, onLogoClick }) => {
+const Header = ({ isLoggedIn, onLogout, onTabChange, onLogoClick }) => {  //Defining the header initially with the tabs available
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navigation = isLoggedIn
@@ -14,12 +14,12 @@ const Header = ({ isLoggedIn, onLogout, onTabChange, onLogoClick }) => {
       ]
     : [];
 
-  return (
+  return (                                                              //Return with styles and overall layout, including clicking on the logo
     <div className="relative isolate bg-white">
       <header className="fixed inset-x-0 top-0 z-50">
-        <nav aria-label="Global" className="flex items-center justify-between p-6 lg:px-8">
-          <div className="flex lg:flex-1">
-            <button onClick={onLogoClick} className="-m-1.5 p-1.5">
+        <nav aria-label="Global" className="flex items-center justify-between p-6 lg:px-8">   
+          <div className="flex lg:flex-1">                            
+            <button onClick={onLogoClick} className="-m-1.5 p-1.5">     
               <span className="sr-only">Inbox Zing</span>
               <h1 className="text-xl font-bold">Inbox Zing</h1>
             </button>

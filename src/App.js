@@ -8,37 +8,37 @@ import DeleteUser from './components/DeleteUser';
 import { UserProvider } from './components/UserContext'; 
 import Header from './components/Header'; 
 
-function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+function App() {              
+  const [isLoggedIn, setIsLoggedIn] = useState(false);  //A Flag to handle the logged in state
   const [activeTab, setActiveTab] = useState('Home');
   const [isRedirectedFromSignUp, setIsRedirectedFromSignUp] = useState(false);  // A flag to handle redirection from SignUp
 
-  const handleLogin = () => {
+  const handleLogin = () => {   //Login
     setIsLoggedIn(true);
     setActiveTab('NewsFeed');
   };
 
-  const handleLogout = () => {
+  const handleLogout = () => {    //Logout
     setIsLoggedIn(false);
     setActiveTab('Home');
   };
 
-  const handleDeleteAccount = () => {
+  const handleDeleteAccount = () => {   //Handling deleting an account
     alert("User deleted!");
     handleLogout();
   };
 
-  const handleSignUp = () => {
+  const handleSignUp = () => {    //Singup
     setIsRedirectedFromSignUp(true);
     setIsLoggedIn(true);
     setActiveTab('Preferences');
   };
 
-  const handleUpdateComplete = () => {
+  const handleUpdateComplete = () => {    //Updating Preferences
     setActiveTab('NewsFeed');
   };
 
-  const handleTabChange = (tab) => {
+  const handleTabChange = (tab) => {    //tab Change
     setActiveTab(tab);
   };
 
