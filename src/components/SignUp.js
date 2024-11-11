@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+
 function SignUp({ onSignUp, onNavigateToLogin }) {
   const [formData, setFormData] = useState({ 
     username: '', 
@@ -6,13 +7,47 @@ function SignUp({ onSignUp, onNavigateToLogin }) {
     password: '', 
     confirmPassword: '' 
   });
+  const [error, setError] = useState(null); 
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSignUp();
+    
+    // Ensure passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
 
+    // Reset any previous errors
+    setError(null);
+
+    try {
+      const response = await fetch('/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          username: formData.username,
+          email: formData.email,
+          password: formData.password
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to sign up.");
+      }
+
+      const result = await response.json();
+      alert(result.message); // Show success message
+      onSignUp(); // Proceed with the signup flow
+
+    } catch (error) {
+      setError(error.message); // Display the error
+    }
   };
 
   return (

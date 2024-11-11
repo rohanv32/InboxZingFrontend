@@ -1,12 +1,34 @@
-
-
-
-import React from 'react';
+import React, { useState } from 'react';
 
 function DeleteUser({ onDelete }) {
-  // Function to create the delete button click for deleting the user
-  const handleDelete = () => {
-    onDelete();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Function to handle the delete button click and trigger the API request
+  const handleDelete = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetch('/api/delete-user', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username: 'user123' }),  // Replace 'user123' with the actual username
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete user');
+      }
+
+      // Assuming onDelete is a function to handle the state after successful deletion
+      onDelete();
+    } catch (err) {
+      setError('An error occurred while deleting your account. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -24,12 +46,15 @@ function DeleteUser({ onDelete }) {
           Are you sure you want to delete your account? This action cannot be undone.
         </p>
 
-        {/* User presses on Delete button to initiates handleDelete */}
+        {error && <p className="text-red-500 mb-4">{error}</p>}
+        
+        {/* User presses the Delete button to trigger handleDelete */}
         <button 
           onClick={handleDelete} 
           className="w-full flex justify-center rounded-sm bg-[#D5C3C6] py-3 text-black"
+          disabled={loading}
         >
-          Delete Account
+          {loading ? 'Deleting...' : 'Delete Account'}
         </button>
         
         {/* Link to renavigate to settings page */}
@@ -44,10 +69,3 @@ function DeleteUser({ onDelete }) {
 }
 
 export default DeleteUser;
-
-
-
-
-
-
-

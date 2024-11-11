@@ -97,6 +97,7 @@
 
 import React, { useState, useContext } from 'react';
 import { UserContext } from './UserContext';
+import axios from 'axios';
 
 function Preferences({ onUpdateComplete }) {
   const { preferences, setPreferences } = useContext(UserContext);
@@ -104,29 +105,15 @@ function Preferences({ onUpdateComplete }) {
   const [localPreferences, setLocalPreferences] = useState(preferences);
   const [error, setError] = useState('');
 
-  const MEDIA_OUTLETS = [
-    'Axios',
-    'The New York Times',
-    'Bloomberg',
-    'Reuters',
-    'Financial Times',
-    'The Guardian'
-  ];
+  const MEDIA_OUTLETS = ['Axios', 'The New York Times', 'Bloomberg', 'Reuters', 'Financial Times', 'The Guardian'];
 
-  const TOPICS = [
-    'Artificial Intelligence',
-    'Politics',
-    'Finance',
-    'Sports',
-    'Entertainment',
-    'Sustainability'
-  ];
+  const CATEGORY_OPTIONS = ['Artificial Intelligence', 'Politics', 'Finance', 'Sports', 'Entertainment', 'Sustainability'];
 
   const COUNTRY_OPTIONS = [
     { code: 'us', name: 'United States' },
     { code: 'ca', name: 'Canada' },
     { code: 'gb', name: 'United Kingdom' },
-    { code: 'fr', name: 'France' },
+    { code: 'fr', name: 'France' }
   ];
 
   const LANGUAGE_OPTIONS = [
@@ -136,26 +123,16 @@ function Preferences({ onUpdateComplete }) {
 
   const SUMMARY_STYLE_OPTIONS = ['brief', 'detailed', 'humorous', 'eli5'];
 
-  const handleMultiSelection = (field, value) => {
-    setLocalPreferences(prev => ({
-      ...prev,
-      [field]: prev[field]?.includes(value)
-        ? prev[field].filter(item => item !== value)
-        : [...(prev[field] || []), value]
-    }));
-    setError('');
-  };
-
   const handleSelection = (field, value) => {
-    setLocalPreferences(prev => ({
+    setLocalPreferences((prev) => ({
       ...prev,
       [field]: value
     }));
     setError('');
   };
 
-  const handleNext = () => {
-    switch(step) {
+  const handleNext = async () => {
+    switch (step) {
       case 1:
         if (!localPreferences.mediaOutlets?.length) {
           setError('Please select at least one media outlet');
@@ -169,8 +146,8 @@ function Preferences({ onUpdateComplete }) {
         }
         break;
       case 3:
-        if (!localPreferences.topics?.length) {
-          setError('Please select at least one topic of interest');
+        if (!localPreferences.category) {
+          setError('Please select a category');
           return;
         }
         break;
@@ -179,8 +156,22 @@ function Preferences({ onUpdateComplete }) {
           setError('Please complete all preferences');
           return;
         }
-        setPreferences(localPreferences);
-        onUpdateComplete();
+
+        try {
+          await axios.put(`/preferences/${localPreferences.username}`, {
+            country: localPreferences.country,
+            category: localPreferences.category,
+            language: localPreferences.language,
+            summaryStyle: localPreferences.summaryStyle,
+            frequency: localPreferences.frequency
+          });
+
+          setPreferences(localPreferences);
+          onUpdateComplete();
+        } catch (error) {
+          console.error("Error updating preferences:", error);
+          setError("Failed to update preferences. Please try again.");
+        }
         return;
     }
     setStep(step + 1);
@@ -188,18 +179,16 @@ function Preferences({ onUpdateComplete }) {
   };
 
   const renderStep = () => {
-    switch(step) {
+    switch (step) {
       case 1:
         return (
           <>
-            <h2 className="text-xl text-center mb-8">
-              Choose your media outlets!
-            </h2>
+            <h2 className="text-xl text-center mb-8">Choose your media outlets!</h2>
             <div className="space-y-3">
               {MEDIA_OUTLETS.map((outlet) => (
                 <button
                   key={outlet}
-                  onClick={() => handleMultiSelection('mediaOutlets', outlet)}
+                  onClick={() => handleSelection('mediaOutlets', outlet)}
                   className={`w-full flex items-center bg-[#E8E8E8] rounded-sm py-3 px-4 ${
                     localPreferences.mediaOutlets?.includes(outlet) ? 'border-2 border-[#D5C3C6]' : ''
                   }`}
@@ -217,9 +206,7 @@ function Preferences({ onUpdateComplete }) {
       case 2:
         return (
           <>
-            <h2 className="text-xl text-center mb-8">
-              Choose your country and language
-            </h2>
+            <h2 className="text-xl text-center mb-8">Choose your country and language</h2>
             <div className="space-y-6">
               <div>
                 <p className="mb-3 text-center">Country</p>
@@ -259,22 +246,20 @@ function Preferences({ onUpdateComplete }) {
       case 3:
         return (
           <>
-            <h2 className="text-xl text-center mb-8">
-              Choose your topics of Interest!
-            </h2>
+            <h2 className="text-xl text-center mb-8">Choose your category of interest!</h2>
             <div className="space-y-3">
-              {TOPICS.map((topic) => (
+              {CATEGORY_OPTIONS.map((category) => (
                 <button
-                  key={topic}
-                  onClick={() => handleMultiSelection('topics', topic)}
+                  key={category}
+                  onClick={() => handleSelection('category', category)}
                   className={`w-full flex items-center bg-[#E8E8E8] rounded-sm py-3 px-4 ${
-                    localPreferences.topics?.includes(topic) ? 'border-2 border-[#D5C3C6]' : ''
+                    localPreferences.category === category ? 'border-2 border-[#D5C3C6]' : ''
                   }`}
                 >
                   <div className={`w-4 h-4 rounded-full mr-4 ${
-                    localPreferences.topics?.includes(topic) ? 'bg-[#D5C3C6]' : 'border-2 border-[#D5C3C6]'
+                    localPreferences.category === category ? 'bg-[#D5C3C6]' : 'border-2 border-[#D5C3C6]'
                   }`}></div>
-                  {topic}
+                  {category}
                 </button>
               ))}
             </div>
@@ -284,52 +269,8 @@ function Preferences({ onUpdateComplete }) {
       case 4:
         return (
           <>
-            <h2 className="text-xl text-center mb-8">
-              Final Preferences
-            </h2>
+            <h2 className="text-xl text-center mb-8">Final Preferences</h2>
             <div className="space-y-6">
-              <div>
-                <p className="mb-3 text-center">What is your agenda of use?</p>
-                <div className="space-y-3">
-                  <button
-                    onClick={() => handleSelection('agenda', 'Stay Up To Date')}
-                    className={`w-full flex items-center bg-[#E8E8E8] rounded-sm py-3 px-4 ${
-                      localPreferences.agenda === 'Stay Up To Date' ? 'border-2 border-[#D5C3C6]' : ''
-                    }`}
-                  >
-                    <div className={`w-4 h-4 rounded-full mr-4 ${
-                      localPreferences.agenda === 'Stay Up To Date' ? 'bg-[#D5C3C6]' : 'border-2 border-[#D5C3C6]'
-                    }`}></div>
-                    Stay Up To Date
-                  </button>
-                  <button
-                    onClick={() => handleSelection('agenda', 'Deep Dive Into Topics')}
-                    className={`w-full flex items-center bg-[#E8E8E8] rounded-sm py-3 px-4 ${
-                      localPreferences.agenda === 'Deep Dive Into Topics' ? 'border-2 border-[#D5C3C6]' : ''
-                    }`}
-                  >
-                    <div className={`w-4 h-4 rounded-full mr-4 ${
-                      localPreferences.agenda === 'Deep Dive Into Topics' ? 'bg-[#D5C3C6]' : 'border-2 border-[#D5C3C6]'
-                    }`}></div>
-                    Deep Dive Into Topics
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <p className="mb-3 text-center">Delivery Frequency</p>
-                <select 
-                  value={localPreferences.frequency || ''}
-                  onChange={(e) => handleSelection('frequency', e.target.value)}
-                  className="w-full bg-[#E8E8E8] rounded-sm py-3 px-4"
-                >
-                  <option value="">Select frequency</option>
-                  <option value="6">Every 6 Hours</option>
-                  <option value="12">Every 12 Hours</option>
-                  <option value="24">Daily</option>
-                </select>
-              </div>
-
               <div>
                 <p className="mb-3 text-center">Summary Style</p>
                 <select 
@@ -345,6 +286,20 @@ function Preferences({ onUpdateComplete }) {
                   ))}
                 </select>
               </div>
+
+              <div>
+                <p className="mb-3 text-center">Delivery Frequency</p>
+                <select 
+                  value={localPreferences.frequency || ''}
+                  onChange={(e) => handleSelection('frequency', parseInt(e.target.value))}
+                  className="w-full bg-[#E8E8E8] rounded-sm py-3 px-4"
+                >
+                  <option value="">Select frequency</option>
+                  <option value="6">Every 6 Hours</option>
+                  <option value="12">Every 12 Hours</option>
+                  <option value="24">Daily</option>
+                </select>
+              </div>
             </div>
           </>
         );
@@ -354,9 +309,7 @@ function Preferences({ onUpdateComplete }) {
   return (
     <div className="flex min-h-screen flex-col items-center p-8">
       <div className="max-w-md w-full">
-        <h1 className="text-4xl font-bold text-center mb-8">
-          THE INBOX ZING!
-        </h1>
+        <h1 className="text-4xl font-bold text-center mb-8">THE INBOX ZING!</h1>
         
         {renderStep()}
 

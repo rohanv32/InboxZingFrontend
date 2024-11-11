@@ -1,17 +1,42 @@
-import React, { useContext } from 'react';
-import mockData from '../mockData';
+import React, { useContext, useEffect, useState } from 'react';
 import { UserContext } from './UserContext';
 
 function NewsFeed() {
-  const { preferences } = useContext(UserContext);
+  const { preferences, username } = useContext(UserContext);
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const filteredArticles = preferences.country && preferences.category && preferences.language
-    ? mockData.filter(article => 
-        article.country === preferences.country &&
-        article.category === preferences.category &&
-        article.language === preferences.language
-      )
-    : mockData;
+  useEffect(() => {
+    if (preferences.country && preferences.category && preferences.language) {
+      const fetchArticles = async () => {
+        try {
+          const response = await fetch(`/news/${username}`);
+          if (!response.ok) {
+            throw new Error('Failed to fetch news articles');
+          }
+          const data = await response.json();
+          setArticles(data.articles || []);
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchArticles();
+    } else {
+      setLoading(false); // If preferences are not set, no need to fetch
+    }
+  }, [preferences, username]);
+
+  if (loading) {
+    return <div className="text-center text-gray-500">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center text-red-500">{error}</div>;
+  }
 
   return (
     <div className="flex min-h-screen flex-col items-center p-8">
@@ -47,8 +72,8 @@ function NewsFeed() {
 
         {/* News Articles */}
         <div className="space-y-4">
-          {filteredArticles.length > 0 ? (
-            filteredArticles.map((article, index) => (
+          {articles.length > 0 ? (
+            articles.map((article, index) => (
               <div key={index} className="flex bg-gray-100 rounded-sm overflow-hidden">
                 <div className="w-1/2 p-4">
                   <span className="text-sm text-gray-600">#{article.category}</span>
