@@ -3,11 +3,14 @@ import requests
 import os
 from pymongo import MongoClient
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Cookie
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 from typing import List, Optional
 from bson import ObjectId
+import certifi
 
 # Model used to Capture user sign up credentials.
 class UserCreate(BaseModel):
@@ -45,7 +48,7 @@ fast_app = FastAPI()
 # connect to database (mongoDB)
 MONGO_URI = os.getenv("MONGO_URI")
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
-client = MongoClient(MONGO_URI)
+client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
 db = client['news_app']
 users_collection = db['users']
 news_articles_collection = db['news_articles']
@@ -86,26 +89,41 @@ def summarize_article(article: dict, summary_style: str) -> str:
         return f"Title: {article['title']}\nSource: {article['source']['name']}\nDescription: {article['description']}\nURL: {article['url']}\n"
         
 # All endpoints are added below
+
+@fast_app.get("/status")
+async def get_status(username: str = Cookie(None)):
+    if username:
+        # If a username cookie is present, it means the user is logged in
+        return {"isLoggedIn": True, "username": username}
+    else:
+        # If no cookie, the user is not logged in
+        return {"isLoggedIn": False, "username": None}
+    
 # first endpoint to handle signing up a a new user
 @fast_app.post("/signup")
 async def signup(user: UserCreate):
-    # hash the user's password for security
+    # Hash the user's password for security
     hashed_password = hash_password(user.password)
+    
+    # Check if the username already exists
+    existing_user = users_collection.find_one({"username": user.username})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Username already exists")
+    
+    # Create the new user document
     new_user = {
         "username": user.username,
         "email": user.email,
         "password": hashed_password,
         "created_at": datetime.now()
     }
-    # message displayed when user is created
-    # then a user is successfully added to the database
+
+    # Try to insert the new user into the database
     try:
         users_collection.insert_one(new_user)
         return {"message": "User created successfully"}
-        # if error display this message
-        # errors include having same usernames and emails like another user(duplication)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error creating user: {str(e)}")   
+        raise HTTPException(status_code=400, detail=f"Error creating user: {str(e)}")
     
 # Second Endpoint to handle logging in a user
 @fast_app.post("/login")
@@ -113,7 +131,8 @@ async def login(user: UserLogin):
     db_user = users_collection.find_one({"username": user.username})
     if db_user and db_user["password"] == hash_password(user.password):
       # if username and password match user in db, login is successful
-        return {"message": "Login successful"}
+        print("Backend login successful for:", user.username)
+        return JSONResponse(content={"message": "Login successful", "username": user.username})
         # if error display this message
     raise HTTPException(status_code=401, detail="Invalid username or password")
 
@@ -131,7 +150,6 @@ async def update_preferences(username: str, preferences: UserPreferences):
         return {"message": "Preferences updated successfully"}
     raise HTTPException(status_code=404, detail="User not found")
 
-# Fourth endpoint to get news articles based on user preferences pre-set
 @fast_app.get("/news/{username}")
 async def get_news(username: str):
     user = users_collection.find_one({"username": username})
@@ -142,43 +160,73 @@ async def get_news(username: str):
     if not preferences:
         raise HTTPException(status_code=400, detail="User preferences not set")
 
-    last_article = news_articles_collection.find_one({"username": username}, sort=[("fetched_at", -1)])
+    user_news_doc = news_articles_collection.find_one({"username": username})
 
-    # Check if we need to fetch new articles based on frequency
-    if last_article and datetime.now() - last_article['fetched_at'] < timedelta(hours=preferences['frequency']):
-        articles = list(news_articles_collection.find({"username": username}))
-    else:
-      # Clear old articles
-        news_articles_collection.delete_many({"username": username})
-        fetched_articles = fetch_news(UserPreferences(**preferences))
-
-        articles = []
-        for article in fetched_articles:
-            summary = summarize_article(article, preferences['summaryStyle'])
-            news_entry = {
-                "username": username,
-                "fetched_at": datetime.now(),
-                "preferences": preferences,
-                "article": {
+    # Check if the preferences have changed (e.g., compare the stored preferences with the current ones)
+    if user_news_doc and user_news_doc['preferences'] == preferences:
+        if datetime.now() - user_news_doc['fetched_at'] < timedelta(hours=preferences['frequency']):
+            # Return the stored articles if they are recent enough
+            articles = user_news_doc['articles']
+        else:
+            # Fetch new articles if the frequency has passed
+            fetched_articles = fetch_news(UserPreferences(**preferences))
+            articles = []
+            for article in fetched_articles:
+                summary = summarize_article(article, preferences['summaryStyle'])
+                articles.append({
                     "title": article['title'],
                     "source": article['source']['name'],
                     "description": article['description'],
                     "url": article['url'],
                     "published_at": article.get('publishedAt'),
+                    "urlToImage": article.get('urlToImage'),
                     "summary": summary
-                }
-            }
-            news_articles_collection.insert_one(news_entry)
-            # Add the _id as a string to the result
-            news_entry['_id'] = str(news_entry['_id'])
-            articles.append(news_entry)
+                })
 
-    # Convert ObjectId to string for all articles
-    for article in articles:
-        article['_id'] = str(article['_id'])
+            # Update the user's document with the new articles
+            news_articles_collection.update_one(
+                {"username": username},
+                {
+                    "$set": {
+                        "username": username,
+                        "fetched_at": datetime.now(),
+                        "preferences": preferences,
+                        "articles": articles
+                    }
+                },
+                upsert=True
+            )
+    else:
+        # If preferences have changed, fetch new articles regardless of frequency
+        fetched_articles = fetch_news(UserPreferences(**preferences))
+        articles = []
+        for article in fetched_articles:
+            summary = summarize_article(article, preferences['summaryStyle'])
+            articles.append({
+                "title": article['title'],
+                "source": article['source']['name'],
+                "description": article['description'],
+                "url": article['url'],
+                "published_at": article.get('publishedAt'),
+                "urlToImage": article.get('urlToImage'),
+                "summary": summary
+            })
+
+        # Update the user's document with the new articles and preferences
+        news_articles_collection.update_one(
+            {"username": username},
+            {
+                "$set": {
+                    "username": username,
+                    "fetched_at": datetime.now(),
+                    "preferences": preferences,
+                    "articles": articles
+                }
+            },
+            upsert=True
+        )
 
     return {"articles": articles}
-
 
 # fifth endpoint to get all news articles stored in the database
 @fast_app.get("/news_articles/")

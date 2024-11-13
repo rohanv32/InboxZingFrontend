@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { UserContext } from './UserContext';
 
 function Login({ onLogin, onNavigateToSignUp }) {
   const [formData, setFormData] = useState({ username: '', password: '' });
@@ -8,6 +9,7 @@ function Login({ onLogin, onNavigateToSignUp }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("Form Data: ", formData);
 
     try {
       const response = await fetch('/login', {
@@ -16,13 +18,31 @@ function Login({ onLogin, onNavigateToSignUp }) {
         body: JSON.stringify(formData)
       });
 
+      console.log("Response status:", response.status);
+      console.log("Response ok:", response.ok);
+
       if (response.ok) {
         const data = await response.json();
-        alert(data.message); // Display success message
-        onLogin(); // Call onLogin function on success
+        console.log("Login success response data:", data);
+        alert(data.message);
+        await onLogin(formData);
+
+        // Fetch news for the logged-in user
+        try {
+          const newsResponse = await fetch(`/news/${formData.username}`);
+          if (newsResponse.ok) {
+            const newsData = await newsResponse.json();
+            console.log("Fetched news data:", newsData); // Log the fetched news data
+          } else {
+            console.error("Failed to fetch news articles.");
+          }
+        } catch (newsErr) {
+          console.error("An error occurred while fetching news:", newsErr);
+        }
       } else {
         const error = await response.json();
-        alert(error.detail); // Display error message
+        console.error("Login error response:", error);
+        alert(error.detail);
       }
     } catch (err) {
       console.error("An error occurred:", err);
