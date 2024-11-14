@@ -41,6 +41,14 @@ class NewsArticle(BaseModel):
     published_at: Optional[str]
     summary: str
 
+class UserPreferencesResponse(BaseModel):
+    username: str
+    preferences: dict
+
+class UpdatePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
 # loading the env variables and starting the fastapi
 load_dotenv()
 fast_app = FastAPI()
@@ -62,6 +70,10 @@ NEWS_API_URL = "https://newsapi.org/v2/top-headlines"
 # Password hashing function
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
+
+# Helper function to check the password hash (Original logic)
+def verify_password(stored_password: str, provided_password: str) -> bool:
+    return stored_password == hash_password(provided_password)
 
 # Fetch news articles from NewsAPI based on user preferences
 def fetch_news(preferences: UserPreferences) -> List[dict]:
@@ -227,6 +239,40 @@ async def get_news(username: str):
         )
 
     return {"articles": articles}
+
+@fast_app.get("/user/{username}", response_model=UserPreferencesResponse)
+async def get_user_preferences(username: str):
+    user = users_collection.find_one({"username": username})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"username": user["username"], "preferences": user.get("preferences", {})}
+
+# FastAPI route to handle password update
+@fast_app.put("/user/{username}/password")
+async def update_user_password(username: str, request: UpdatePasswordRequest):
+    # Fetch user from the database
+    user = users_collection.find_one({"username": username})
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Verify current password
+    if not verify_password(user['password'], request.current_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    # Hash new password
+    hashed_password = hash_password(request.new_password)
+
+    # Update the password in the database
+    result = users_collection.update_one(
+        {"username": username},
+        {"$set": {"password": hashed_password}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Password unchanged")
+    
+    return {"message": "Password updated successfully"}
 
 # fifth endpoint to get all news articles stored in the database
 @fast_app.get("/news_articles/")

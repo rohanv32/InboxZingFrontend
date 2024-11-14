@@ -5,7 +5,8 @@ import Login from './components/Login';
 import Preferences from './components/Preferences';
 import NewsFeed from './components/NewsFeed';
 import DeleteUser from './components/DeleteUser';
-import { UserProvider, useUserContext } from './components/UserContext'; 
+import { UserProvider, useUserContext } from './components/UserContext';
+import Profile from './components/Profile'; 
 import Header from './components/Header'; 
 import { useNavigate } from 'react-router-dom';
 
@@ -110,48 +111,6 @@ function App() {
     }
 };
 
-  const handleUpdatePreferences = async (preferences) => {
-    if (username) {
-      try {
-        const response = await fetch(`/preferences/${username}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(preferences),
-        });
-
-        if (response.ok) {
-          alert('Preferences updated!');
-          setActiveTab('NewsFeed');
-        } else {
-          alert('Failed to update preferences');
-        }
-      } catch (error) {
-        console.error('Error updating preferences:', error);
-        alert('An error occurred while updating preferences');
-      }
-    }
-  };
-
-  const handleFetchNews = async () => {
-    if (username) {
-      try {
-        const response = await fetch(`/news/${username}`, {
-          method: 'GET',
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setNewsArticles(data.articles);  // Store fetched news articles
-        } else {
-          alert('Failed to fetch news');
-        }
-      } catch (error) {
-        console.error('Error fetching news:', error);
-        alert('An error occurred while fetching news');
-      }
-    }
-  };
-
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     if (token) {
@@ -200,6 +159,10 @@ function App() {
 
   const handleNavigateToLogin = () => {
     setActiveTab('Login');
+  };
+
+  const handleNavigateToPreferences = () => {
+    setActiveTab('Preferences');
   };
 
   const handleLogoClick = () => {
@@ -251,6 +214,9 @@ function App() {
           )}
           {activeTab === 'NewsFeed' && (isLoggedIn || isRedirectedFromSignUp) && (<NewsFeed newsArticles={newsArticles} username={username}/>)}
           {activeTab === 'DeleteUser' && (isLoggedIn || isRedirectedFromSignUp) && (<DeleteUser onDelete={handleDeleteAccount} username={username} />)}
+          {activeTab === 'Profile' && isLoggedIn && (
+            <Profile onNavigatetoPreferences={handleNavigateToPreferences} username={username} />
+          )}
         </div>
       </div>
     </UserProvider>

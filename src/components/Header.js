@@ -10,6 +10,7 @@ const Header = ({ isLoggedIn, onLogout, onTabChange, onLogoClick }) => {  //Defi
         { name: 'News Feed', onClick: () => onTabChange('NewsFeed') },
         { name: 'Preferences', onClick: () => onTabChange('Preferences') },
         { name: 'Delete Account', onClick: () => onTabChange('DeleteUser') },
+        { name: 'Profile', onClick: () => onTabChange('Profile') },
         { name: 'Logout', onClick: onLogout },
       ]
     : [];
