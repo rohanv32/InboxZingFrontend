@@ -24,7 +24,6 @@ class UserLogin(BaseModel):
     password: str
 
 # Model that is used to Stores the user's news preferences
-# it captures info of country, category, language, and news frequency.
 class UserPreferences(BaseModel):
     country: str
     category: str
@@ -71,7 +70,7 @@ NEWS_API_URL = "https://newsapi.org/v2/top-headlines"
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
-# Helper function to check the password hash (Original logic)
+# Helper function to check the password hash
 def verify_password(stored_password: str, provided_password: str) -> bool:
     return stored_password == hash_password(provided_password)
 
@@ -111,7 +110,7 @@ async def get_status(username: str = Cookie(None)):
         # If no cookie, the user is not logged in
         return {"isLoggedIn": False, "username": None}
     
-# first endpoint to handle signing up a a new user
+# Endpoint to handle signing up a a new user
 @fast_app.post("/signup")
 async def signup(user: UserCreate):
     # Hash the user's password for security
@@ -137,7 +136,7 @@ async def signup(user: UserCreate):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error creating user: {str(e)}")
     
-# Second Endpoint to handle logging in a user
+# Endpoint to handle logging in a user
 @fast_app.post("/login")
 async def login(user: UserLogin):
     db_user = users_collection.find_one({"username": user.username})
@@ -148,7 +147,7 @@ async def login(user: UserLogin):
         # if error display this message
     raise HTTPException(status_code=401, detail="Invalid username or password")
 
-# Third Endpoint to handle modifying of previously set user preferences
+# Endpoint to handle modifying of previously set user preferences
 @fast_app.put("/preferences/{username}")
 async def update_preferences(username: str, preferences: UserPreferences):
   # Update the user's preferences in the database accordingly
@@ -240,6 +239,8 @@ async def get_news(username: str):
 
     return {"articles": articles}
 
+
+# Endpoint to get preferences for the Profile Page display
 @fast_app.get("/user/{username}", response_model=UserPreferencesResponse)
 async def get_user_preferences(username: str):
     user = users_collection.find_one({"username": username})
@@ -247,7 +248,7 @@ async def get_user_preferences(username: str):
         raise HTTPException(status_code=404, detail="User not found")
     return {"username": user["username"], "preferences": user.get("preferences", {})}
 
-# FastAPI route to handle password update
+# Endpoint to handle password update
 @fast_app.put("/user/{username}/password")
 async def update_user_password(username: str, request: UpdatePasswordRequest):
     # Fetch user from the database
@@ -274,7 +275,7 @@ async def update_user_password(username: str, request: UpdatePasswordRequest):
     
     return {"message": "Password updated successfully"}
 
-# fifth endpoint to get all news articles stored in the database
+# Endpoint to get all news articles stored in the database
 @fast_app.get("/news_articles/")
 async def get_news_articles():
     articles = list(news_articles_collection.find())
@@ -283,7 +284,7 @@ async def get_news_articles():
         article["_id"] = str(article["_id"])
     return articles
 
-# last endpoint to delete a user from the database with his stored data
+# Endpoint to delete a user from the database with his stored data
 @fast_app.delete("/user/{username}")
 async def delete_user(username: str):
     # if user is found in db, delete from the database
