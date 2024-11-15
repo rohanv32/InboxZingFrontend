@@ -9,6 +9,7 @@ import { UserProvider, useUserContext } from './components/UserContext';
 import Profile from './components/Profile'; 
 import Header from './components/Header'; 
 import { useNavigate } from 'react-router-dom';
+import EarnPoint from './components/EarnPoint';
 
 function App() {
   const context = useUserContext();  // Get context from the UserProvider
@@ -209,6 +210,7 @@ function App() {
           {activeTab === 'Home' && !isLoggedIn && <Home onTabChange={handleTabChange} />}
           {activeTab === 'SignUp' && !isLoggedIn && <SignUp onSignUp={handleSignUp} onNavigateToLogin={handleNavigateToLogin} />}
           {activeTab === 'Login' && !isLoggedIn && <Login onLogin={handleLogin} onNavigateToSignUp={handleNavigateToSignUp} />}
+          {activeTab === 'EarnPoint' && (isLoggedIn || isRedirectedFromSignUp) && <EarnPoint />}
           {activeTab === 'Preferences' && (isLoggedIn || isRedirectedFromSignUp) && (
             <Preferences onUpdateComplete={handleUpdateComplete} username={username}/>
           )}
