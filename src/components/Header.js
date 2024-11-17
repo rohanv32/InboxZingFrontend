@@ -11,6 +11,7 @@ const Header = ({ isLoggedIn, onLogout, onTabChange, onLogoClick }) => {  //Defi
         { name: 'Preferences', onClick: () => onTabChange('Preferences') },
         { name: 'Delete Account', onClick: () => onTabChange('DeleteUser') },
         { name: 'Profile', onClick: () => onTabChange('Profile') },
+        { name: 'Podcast', onClick: () => onTabChange('Podcast') },
         { name: 'Logout', onClick: onLogout },
       ]
     : [];

@@ -8,6 +8,7 @@ import DeleteUser from './components/DeleteUser';
 import { UserProvider, useUserContext } from './components/UserContext';
 import Profile from './components/Profile'; 
 import Header from './components/Header'; 
+import Podcast from './components/Podcast'
 import { useNavigate } from 'react-router-dom';
 import EarnPoint from './components/EarnPoint';
 
@@ -219,6 +220,7 @@ function App() {
           {activeTab === 'Profile' && isLoggedIn && (
             <Profile onNavigatetoPreferences={handleNavigateToPreferences} username={username} />
           )}
+          {activeTab === 'Podcast' && isLoggedIn && <Podcast username={username} />}
         </div>
       </div>
     </UserProvider>

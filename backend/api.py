@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 from bson import ObjectId
 import certifi
+import openai
 
 # Model used to Capture user sign up credentials.
 class UserCreate(BaseModel):
@@ -27,7 +28,7 @@ class UserLogin(BaseModel):
 class UserPreferences(BaseModel):
     country: str
     category: str
-    language: str
+    sources: str
     summaryStyle: str
     frequency: int
 
@@ -55,6 +56,7 @@ fast_app = FastAPI()
 # connect to database (mongoDB)
 MONGO_URI = os.getenv("MONGO_URI")
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
+openai.api_key = os.getenv("openai.api_key")
 client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
 db = client['news_app']
 users_collection = db['users']
@@ -78,9 +80,7 @@ def verify_password(stored_password: str, provided_password: str) -> bool:
 def fetch_news(preferences: UserPreferences) -> List[dict]:
     params = {
         'apiKey': NEWS_API_KEY,
-        'country': preferences.country,
-        'category': preferences.category,
-        'language': preferences.language,
+        'sources': preferences.sources,  # Use the sources parameter
         'pageSize': 10  # Fetch 10 articles
     }
     response = requests.get(NEWS_API_URL, params=params)
@@ -150,6 +150,7 @@ async def login(user: UserLogin):
 # Endpoint to handle modifying of previously set user preferences
 @fast_app.put("/preferences/{username}")
 async def update_preferences(username: str, preferences: UserPreferences):
+    print(f"Attempting to update preferences for username: {username}")
   # Update the user's preferences in the database accordingly
     result = users_collection.update_one(
         {"username": username},
@@ -157,6 +158,7 @@ async def update_preferences(username: str, preferences: UserPreferences):
     )
     # error handling if prefs are updated successfully
     # if error, user not found displayed
+    print(f"Update result: {result.modified_count}")
     if result.modified_count:
         return {"message": "Preferences updated successfully"}
     raise HTTPException(status_code=404, detail="User not found")
@@ -295,6 +297,89 @@ async def delete_user(username: str):
         return {"message": f"User {username} and articles associated with the account are deleted"}
     # error handling part when the user is not found
     raise HTTPException(status_code=404, detail="User not found")
+
+def generate_podcast_script(articles, summary_style):
+    news_content = ""
+
+
+    # Validate that articles is a list and contains data
+    if not isinstance(articles, list) or not articles:
+        print("No articles or invalid structure provided.")
+        raise HTTPException(status_code=500, detail="No articles found or invalid article structure.")
+
+
+    # Construct news content for prompt
+    try:
+        for idx, article_entry in enumerate(articles, 1):
+            if 'articles' not in article_entry:
+                raise KeyError("'articles' key missing in article entry")
+            
+            for sub_idx, sub_article in enumerate(article_entry['articles'], 1):
+                title = sub_article.get('title', 'No Title')
+                summary = sub_article.get('summary', 'No Summary Available')
+                news_content += f"{idx}.{sub_idx}. Title: {title} - {summary}\n"
+
+
+        print("Constructed news_content for OpenAI prompt:", news_content)
+
+
+    except KeyError as e:
+        print("Error in article format:", e)
+        raise HTTPException(status_code=500, detail=f"Error in article format: {e}")
+
+
+    # Define the messages for the new OpenAI chat API
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant that summarizes news articles for a podcast script."},
+        {"role": "user", "content": (
+            f"Create a 2-minute podcast script that summarizes the following news articles in a {summary_style} style:\n\n{news_content}\n\n"
+            "The podcast should be approximately 300 words to fit within 2 minutes of spoken content."
+        )}
+    ]
+    
+    print("Generated messages for OpenAI Chat API:", messages)
+
+
+    # OpenAI API call with the new SDK's case-sensitive Chat API
+    try:
+        response = openai.chat.completions.create(
+            model="gpt-3.5-turbo",  # or "gpt-4" if you have access
+            messages=messages,
+            max_tokens=300,
+            temperature=0.7
+        )
+        
+        # Access the response content correctly
+        podcast_text = response.choices[0].message.content.strip()
+        print("Generated podcast script:", podcast_text)
+        return podcast_text
+
+
+    except Exception as e:
+        print("Unexpected error during OpenAI API call:", e)  # Log unexpected errors
+        raise HTTPException(status_code=500, detail="An unexpected error occurred in OpenAI API call")
+
+
+@fast_app.get("/podcast_script/{username}")
+async def create_podcast_script(username: str):
+    try:
+        # Fetch articles and log them for debugging
+        articles = fetch_news(username)
+        #print("Fetched articles:", articles)  # Debugging line
+        
+        # Fetch user preferences
+        user = users_collection.find_one({"username": username})
+        summary_style = user["preferences"]["summaryStyle"] if user and "preferences" in user else "brief"
+
+        # Generate podcast script
+        podcast_script = generate_podcast_script(articles, summary_style)
+        print(podcast_script)
+
+        return JSONResponse(content={"podcast_script": podcast_script})
+
+    except Exception as e:
+        print("Error in podcast script endpoint:", e)  # Detailed error log
+        return JSONResponse(content={"error": str(e)}, status_code=500)
 
 fast_app.add_middleware(
     CORSMiddleware,

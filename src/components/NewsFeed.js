@@ -1,11 +1,11 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { useUserActions } from './UserContext';
+import React, { useEffect, useState } from 'react';
 
 function NewsFeed({ newsArticles, username }) {
-  const { preferences } = useUserActions();
   console.log("Username in NewsFeed:", username);
 
   const [articles, setArticles] = useState(newsArticles || []);
+  console.log("Initial newsArticles:", newsArticles);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -16,27 +16,24 @@ function NewsFeed({ newsArticles, username }) {
       return;
     }
 
-    if (preferences.country && preferences.category && preferences.language) {
-      const fetchArticles = async () => {
-        try {
-          const response = await fetch(`/news/${username}`);
-          if (!response.ok) {
-            throw new Error('Failed to fetch news articles');
-          }
-          const data = await response.json();
-          setArticles(data.articles || []);
-        } catch (err) {
-          setError(err.message);
-        } finally {
-          setLoading(false);
+    const fetchArticles = async () => {
+      try {
+        const response = await fetch(`/news/${username}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch news articles');
         }
-      };
+        const data = await response.json();
+        console.log("Fetched articles:", data.articles);
+        setArticles(data.articles || []);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      fetchArticles();
-    } else {
-      setLoading(false);
-    }
-  }, [preferences, username]);
+    fetchArticles();
+  }, [username]);  // Only depend on username
 
   if (loading) {
     return <div className="text-center text-gray-500">Loading...</div>;
