@@ -120,7 +120,7 @@ function Preferences({ onUpdateComplete, username }) {
     async function fetchData() {
       try {
         const response = await axios.get(
-          `https://newsapi.org/v2/top-headlines/sources?apiKey=071825dcbb524a5fba8dda598693a352`
+          `https://newsapi.org/v2/top-headlines/sources?apiKey=NEWS_API_KEY`
         );
         const sources = response.data.sources;
 
