@@ -99,6 +99,8 @@ import React, { useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 import { UserContext } from './UserContext';
 
+const NEWS_API_KEY = process.env.REACT_APP_NEWS_API_KEY;
+
 function Preferences({ onUpdateComplete, username }) {
   const { preferences, setPreferences } = useContext(UserContext);
   const [step, setStep] = useState(1);
@@ -120,7 +122,7 @@ function Preferences({ onUpdateComplete, username }) {
     async function fetchData() {
       try {
         const response = await axios.get(
-          `https://newsapi.org/v2/top-headlines/sources?apiKey=NEWS_API_KEY`
+          `https://newsapi.org/v2/top-headlines/sources?apiKey=${NEWS_API_KEY}`
         );
         const sources = response.data.sources;
 
