@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { UserContext } from './UserContext';
 
 function Login({ onLogin, onNavigateToSignUp }) {
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const { earnPoints, setPoints, points } = useContext(UserContext);
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -12,43 +13,66 @@ function Login({ onLogin, onNavigateToSignUp }) {
     console.log("Form Data: ", formData);
 
     try {
-      const response = await fetch('/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
+        const response = await fetch('/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        });
 
-      console.log("Response status:", response.status);
-      console.log("Response ok:", response.ok);
+        console.log("Response status:", response.status);
+        console.log("Response ok:", response.ok);
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Login success response data:", data);
-        alert(data.message);
-        await onLogin(formData);
+        if (response.ok) {
+            const data = await response.json();
+            console.log("Login success response data:", data);
+            alert(data.message);
+            await onLogin(formData);
 
-        // Fetch news for the logged-in user
-        try {
-          const newsResponse = await fetch(`/news/${formData.username}`);
-          if (newsResponse.ok) {
-            const newsData = await newsResponse.json();
-            console.log("Fetched news data:", newsData); // Log the fetched news data
-          } else {
-            console.error("Failed to fetch news articles.");
-          }
-        } catch (newsErr) {
-          console.error("An error occurred while fetching news:", newsErr);
+            // Fetch the current points from the server
+            const userPointsResponse = await fetch(`/points/${formData.username}`);
+            if (userPointsResponse.ok) {
+                const userPointsData = await userPointsResponse.json();
+                console.log("Fetched user points from server:", userPointsData);
+
+                // Calculate the new points (add login gift points)
+                const updatedPoints = userPointsData.points + 10;
+
+                // Update points on the backend
+                const pointsUpdateResponse = await fetch(`/points/update?username=${formData.username}&points=10`, {
+                    method: 'POST',
+                });
+                if (pointsUpdateResponse.ok) {
+                    console.log(`10 points added for login. Updated total: ${updatedPoints}`);
+                    setPoints(updatedPoints); // Update points in context
+                } else {
+                    console.error("Failed to update points on the server.");
+                }
+            } else {
+                console.error("Failed to fetch user points from the server.");
+            }
+
+            // Fetch news for the logged-in user
+            try {
+                const newsResponse = await fetch(`/news/${formData.username}`);
+                if (newsResponse.ok) {
+                    const newsData = await newsResponse.json();
+                    console.log("Fetched news data:", newsData); // Log the fetched news data
+                } else {
+                    console.error("Failed to fetch news articles.");
+                }
+            } catch (newsErr) {
+                console.error("An error occurred while fetching news:", newsErr);
+            }
+        } else {
+            const error = await response.json();
+            console.error("Login error response:", error);
+            alert(error.detail);
         }
-      } else {
-        const error = await response.json();
-        console.error("Login error response:", error);
-        alert(error.detail);
-      }
     } catch (err) {
-      console.error("An error occurred:", err);
-      alert("An error occurred during login. Please try again later.");
+        console.error("An error occurred:", err);
+        alert("An error occurred during login. Please try again later.");
     }
-  };
+};
 
   const onForgotPassword = () => {
     setShowForgotPassword(true);

@@ -3,7 +3,7 @@ import requests
 import os
 from pymongo import MongoClient
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Cookie
+from fastapi import FastAPI, HTTPException, Cookie, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -18,6 +18,7 @@ class UserCreate(BaseModel):
     username: str
     email: str
     password: str
+    points: int = 0
 
 # Model used to capture login credentials for logging in of an existing user
 class UserLogin(BaseModel):
@@ -126,7 +127,8 @@ async def signup(user: UserCreate):
         "username": user.username,
         "email": user.email,
         "password": hashed_password,
-        "created_at": datetime.now()
+        "created_at": datetime.now(),
+        "points": 0
     }
 
     # Try to insert the new user into the database
@@ -380,6 +382,38 @@ async def create_podcast_script(username: str):
     except Exception as e:
         print("Error in podcast script endpoint:", e)  # Detailed error log
         return JSONResponse(content={"error": str(e)}, status_code=500)
+    
+# Complete the points update endpoint
+@fast_app.post("/points/update")
+async def update_user_points(username: str, points: int):
+    user = users_collection.find_one({"username": username})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    
+    # Update user points in the database
+    new_points = user["points"] + points
+    users_collection.update_one(
+        {"username": username},
+        {"$set": {"points": new_points}}
+    )
+    return {"message": f"Points updated. New total: {new_points}"}
+
+# New endpoint to fetch current points
+@fast_app.get("/points/{username}")
+async def get_user_points(username: str):
+    user = users_collection.find_one({"username": username}, {"_id": 0, "points": 1})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    return {"username": username, "points": user["points"]}
+
+@fast_app.websocket("/ws/points")
+async def points_websocket(websocket: WebSocket):
+    await websocket.accept()
+    while True:
+        # Example: Send points to the client in real-time
+        # Ideally, tie this to an event or database change.
+        await websocket.send_json({"message": "Points updated!"})
+        await asyncio.sleep(5)  # Adjust interval or trigger mechanism
 
 fast_app.add_middleware(
     CORSMiddleware,
