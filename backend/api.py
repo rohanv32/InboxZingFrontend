@@ -134,7 +134,9 @@ async def signup(user: UserCreate):
             "current_streak": 0,
             "streak_start_date": None,
             "last_activity_date": None
-        }
+        },
+        "last_login": None,
+        "streak": 0
     }
 
     # Try to insert the new user into the database
