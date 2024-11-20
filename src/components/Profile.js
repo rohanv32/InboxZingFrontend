@@ -12,6 +12,7 @@ function Profile({ username, onNavigatetoPreferences }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isAnimating, setIsAnimating] = useState(true); // State to control animation
 
   const navigate = useNavigate();
 
@@ -43,6 +44,9 @@ function Profile({ username, onNavigatetoPreferences }) {
       }
     };
     fetchData();
+
+    // Set timeout to end the animation after 3 seconds
+    setTimeout(() => setIsAnimating(false), 3000);
   }, [username]);
 
   const handleShowChangePassword = () => {
@@ -94,12 +98,42 @@ function Profile({ username, onNavigatetoPreferences }) {
     }
   };
 
+  const fireAnimationStyle = {
+    position: 'absolute',
+    top: '80%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    textAlign: 'center',
+    animation: 'fireAnimation 3s forwards',
+    fontSize: '4rem',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    opacity: isAnimating ? 1 : 0,
+    transition: 'opacity 1.5s ease-in-out',
+  };
+
+  const fireIconStyle = {
+    marginRight: '1rem',
+  };
+
+  const streakNumberStyle = {
+    fontSize: '3rem',
+    fontWeight: 'bold',
+    color: '#f97316', // Fire color
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="max-w-md w-full p-8 text-center">
         <h1 className="text-4xl font-bold mb-8">Hello, {username}!</h1>
 
-        {loading ? (
+        {isAnimating ? (
+          <div style={fireAnimationStyle}>
+            <span style={fireIconStyle}>🔥</span>
+            <span style={streakNumberStyle}>{streak}</span>
+          </div>
+        ) : loading ? (
           <p>Loading...</p>
         ) : (
           <div>
@@ -115,11 +149,23 @@ function Profile({ username, onNavigatetoPreferences }) {
 
             {/* Display statistics */}
             <h2 className="text-xl mb-6">Your Statistics</h2>
-            <ul className="mb-6 text-left">
-              <li><strong>Articles Read:</strong> {statistics.articlesRead || 0}</li>
-              <li><strong>Articles Left to Read:</strong> {statistics.articlesLeft || 0}</li>
-              <li><strong>Time Spent Reading (seconds):</strong> {statistics.readingTime || 0}</li>
-              <li><strong>Current Streak:</strong> {streak || 0}</li>
+            <ul className="mb-6 text-left space-y-2">
+              <li className="flex items-center">
+                <span className="text-[#D5C3C6] mr-2">📚</span>
+                <strong>Articles Read:</strong> {statistics.articlesRead || 0}
+              </li>
+              <li className="flex items-center">
+                <span className="text-[#D5C3C6] mr-2">📰</span>
+                <strong>Articles Left to Read:</strong> {statistics.articlesLeft || 0}
+              </li>
+              <li className="flex items-center">
+                <span className="text-[#D5C3C6] mr-2">⏱️</span>
+                <strong>Time Spent Reading (seconds):</strong> {statistics.readingTime || 0}
+              </li>
+              <li className="flex items-center">
+                <span className="text-[#D5C3C6] mr-2">🔥</span>
+                <strong>Current Streak:</strong> {streak || 0}
+              </li>
             </ul>
 
             {/* Link to update preferences */}
