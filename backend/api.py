@@ -19,7 +19,7 @@ class UserCreate(BaseModel):
     email: str
     password: str
     points: int = 0
-    last_login: None
+    last_login: Optional[datetime] = None
 
 # Model used to capture login credentials for logging in of an existing user
 class UserLogin(BaseModel):
@@ -130,13 +130,8 @@ async def signup(user: UserCreate):
         "password": hashed_password,
         "created_at": datetime.now(),
         "points": 0,
-        "streak": {
-            "current_streak": 0,
-            "streak_start_date": None,
-            "last_activity_date": None
-        },
+        "streak": 0,
         "last_login": None,
-        "streak": 0
     }
 
     # Try to insert the new user into the database
