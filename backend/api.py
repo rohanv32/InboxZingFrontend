@@ -58,6 +58,7 @@ fast_app = FastAPI()
 # connect to database (mongoDB)
 MONGO_URI = os.getenv("MONGO_URI")
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
+print(f"Backend API Key: {NEWS_API_KEY}")
 openai.api_key = os.getenv("openai.api_key")
 client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
 db = client['news_app']

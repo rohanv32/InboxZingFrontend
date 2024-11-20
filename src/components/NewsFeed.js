@@ -138,7 +138,7 @@ function NewsFeed({ newsArticles, username }) {
 
   if (selectedArticle) {
     return (
-      <div className="flex min-h-screen flex-col items-center p-8">
+      <div className="flex min-h-screen flex-col items-center p-8 pt-24">
         <div className="max-w-2xl w-full">
           <h1 className="text-4xl font-bold text-center mb-8">
             THE INBOX ZING!
@@ -169,7 +169,7 @@ function NewsFeed({ newsArticles, username }) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center p-8">
+    <div className="flex min-h-screen flex-col items-center p-8 pt-24">
       <div className="max-w-3xl w-full">
         <h1 className="text-4xl font-bold text-center mb-8">
           THE INBOX ZING!
