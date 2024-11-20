@@ -19,6 +19,7 @@ class UserCreate(BaseModel):
     email: str
     password: str
     points: int = 0
+    last_login: None
 
 # Model used to capture login credentials for logging in of an existing user
 class UserLogin(BaseModel):
@@ -128,7 +129,12 @@ async def signup(user: UserCreate):
         "email": user.email,
         "password": hashed_password,
         "created_at": datetime.now(),
-        "points": 0
+        "points": 0,
+        "streak": {
+            "current_streak": 0,
+            "streak_start_date": None,
+            "last_activity_date": None
+        }
     }
 
     # Try to insert the new user into the database
@@ -145,6 +151,23 @@ async def login(user: UserLogin):
     if db_user and db_user["password"] == hash_password(user.password):
       # if username and password match user in db, login is successful
         print("Backend login successful for:", user.username)
+        now = datetime.now()
+        last_login = db_user.get("last_login")
+        streak = db_user.get("streak", 0)
+
+        if last_login:
+            last_login_date = last_login.date()
+            if now.date() == last_login_date + timedelta(days=1):
+                streak += 1  # Increment streak for consecutive days
+            elif now.date() > last_login_date + timedelta(days=1):
+                streak = 0  # Reset streak for missed days
+
+        # Update last_login and streak
+        users_collection.update_one(
+            {"username": user.username},
+            {"$set": {"last_login": now, "streak": streak}}
+        )
+
         return JSONResponse(content={"message": "Login successful", "username": user.username})
         # if error display this message
     raise HTTPException(status_code=401, detail="Invalid username or password")
@@ -195,7 +218,8 @@ async def get_news(username: str):
                     "url": article['url'],
                     "published_at": article.get('publishedAt'),
                     "urlToImage": article.get('urlToImage'),
-                    "summary": summary
+                    "summary": summary,
+                    "isRead": False 
                 })
 
             # Update the user's document with the new articles
@@ -224,7 +248,8 @@ async def get_news(username: str):
                 "url": article['url'],
                 "published_at": article.get('publishedAt'),
                 "urlToImage": article.get('urlToImage'),
-                "summary": summary
+                "summary": summary,
+                "isRead": False
             })
 
         # Update the user's document with the new articles and preferences
@@ -242,6 +267,63 @@ async def get_news(username: str):
         )
 
     return {"articles": articles}
+
+@fast_app.patch("/news/{username}/mark_as_read")
+async def mark_article_as_read(username: str, article_url: str, readingTime: int = 0):
+    # Find the user
+    user = users_collection.find_one({"username": username})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Find the user's news document
+    user_news_doc = news_articles_collection.find_one({"username": username})
+    if not user_news_doc:
+        raise HTTPException(status_code=404, detail="No news data found for this user")
+
+    # Update the "isRead" state for the specific article
+    updated_articles = []
+    for article in user_news_doc["articles"]:
+        if article["url"] == article_url:
+            article["isRead"] = True  # Mark as read
+            article["readingTime"] = readingTime
+        updated_articles.append(article)
+    
+    # Update the document with the new "isRead" state
+    news_articles_collection.update_one(
+        {"username": username},
+        {
+            "$set": {
+                "articles": updated_articles
+            }
+        }
+    )
+
+    return {"message": "Article marked as read", "url": article_url}
+
+@fast_app.get("/news/{username}/statistics")
+async def get_news_statistics(username: str):
+    user = users_collection.find_one({"username": username})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Fetch the user's news data
+    user_news_doc = news_articles_collection.find_one({"username": username})
+    if not user_news_doc:
+        raise HTTPException(status_code=404, detail="No news data found for this user")
+    
+    # Calculate statistics
+    total_articles = len(user_news_doc["articles"])
+    read_articles = sum(1 for article in user_news_doc["articles"] if article["isRead"])
+    unread_articles = total_articles - read_articles
+    
+    # Calculate total time spent (assuming each article has a 'timeSpent' field in seconds)
+    total_time_spent = sum(article.get("readingTime", 0) for article in user_news_doc["articles"])
+
+    return {
+        "articlesRead": read_articles,
+        "articlesLeft": unread_articles,
+        "readingTime": total_time_spent,
+    }
 
 
 # Endpoint to get preferences for the Profile Page display
@@ -389,7 +471,6 @@ async def update_user_points(username: str, points: int):
     user = users_collection.find_one({"username": username})
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
-    
     # Update user points in the database
     new_points = user["points"] + points
     users_collection.update_one(
@@ -406,14 +487,12 @@ async def get_user_points(username: str):
         raise HTTPException(status_code=404, detail="User not found.")
     return {"username": username, "points": user["points"]}
 
-@fast_app.websocket("/ws/points")
-async def points_websocket(websocket: WebSocket):
-    await websocket.accept()
-    while True:
-        # Example: Send points to the client in real-time
-        # Ideally, tie this to an event or database change.
-        await websocket.send_json({"message": "Points updated!"})
-        await asyncio.sleep(5)  # Adjust interval or trigger mechanism
+@fast_app.get("/streak/{username}")
+async def get_streak(username: str):
+    user = users_collection.find_one({"username": username})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"streak": user.get("streak", 0)}
 
 fast_app.add_middleware(
     CORSMiddleware,

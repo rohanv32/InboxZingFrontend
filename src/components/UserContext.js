@@ -76,7 +76,8 @@ export function UserProvider({ children }) {
       milestone,
       doublePoints,
       earnPoints,
-      setPoints, }}>
+      setPoints, 
+      setStreak}}>
       {children}
     </UserContext.Provider>
   );

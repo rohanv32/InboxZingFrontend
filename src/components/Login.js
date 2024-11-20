@@ -4,7 +4,7 @@ import { UserContext } from './UserContext';
 function Login({ onLogin, onNavigateToSignUp }) {
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const { earnPoints, setPoints, points } = useContext(UserContext);
+  const { setPoints, setStreak} = useContext(UserContext);
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -50,6 +50,23 @@ function Login({ onLogin, onNavigateToSignUp }) {
             } else {
                 console.error("Failed to fetch user points from the server.");
             }
+
+            try {
+              const streakResponse = await fetch(`/streak/${formData.username}`);
+              if (streakResponse.ok) {
+                  const streakData = await streakResponse.json();
+                  console.log("Fetched streak data:", streakData);
+
+                  // Update streak in context
+                  setStreak(streakData.streak);
+                  console.log("New streak data:", streakData);
+              } else {
+                  console.error("Failed to fetch streak data.");
+              }
+              
+          } catch (streakErr) {
+              console.error("An error occurred while fetching streak:", streakErr);
+          }
 
             // Fetch news for the logged-in user
             try {
