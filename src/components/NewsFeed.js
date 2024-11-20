@@ -119,35 +119,49 @@ function NewsFeed({ newsArticles, username }) {
     setSelectedArticle(null); // Go back to the feed
   };
 
+
   if (loading) {
-    return <div className="text-center text-gray-500">Loading...</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-center">Loading...</p>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="text-center text-red-500">{error}</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-center">{error}</p>
+      </div>
+    );
   }
 
   if (selectedArticle) {
-    // Detailed view for the selected article
     return (
-      <div className="flex flex-col items-center p-8 min-h-screen">
-        <div className="max-w-2xl w-full bg-gray-100 rounded-lg shadow-lg p-6 mt-12">
-          <img
-            src={selectedArticle.urlToImage || 'https://via.placeholder.com/600'}
-            alt={selectedArticle.title}
-            className="w-full rounded-lg mb-4"
-          />
-          <h2 className="text-2xl font-bold mb-2">{selectedArticle.title}</h2>
-          <p className="text-sm text-gray-500 mb-4">
-            Source: {selectedArticle.source} | Published on:{' '}
-            {new Date(selectedArticle.published_at).toLocaleDateString()}
-          </p>
-          <p className="text-sm text-gray-500">{selectedArticle.summary}</p>
+      <div className="flex min-h-screen flex-col items-center p-8">
+        <div className="max-w-2xl w-full">
+          <h1 className="text-4xl font-bold text-center mb-8">
+            THE INBOX ZING!
+          </h1>
+  
+          <div className="bg-[#E8E8E8] rounded-sm p-4">
+            <h2 className="font-semibold mb-2">{selectedArticle.title}</h2>
+            <p className="text-sm">{selectedArticle.summary}</p>
+            <p className="text-sm mt-2">Source: {selectedArticle.source}</p>
+            {selectedArticle.urlToImage && (
+              <img
+                src={selectedArticle.urlToImage}
+                alt={selectedArticle.title}
+                className="w-full mt-4 rounded-sm"
+              />
+            )}
+          </div>
+  
           <button
             onClick={handleBackToFeed}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="w-full bg-[#D5C3C6] rounded-sm py-3 text-black mt-8"
           >
-            Back to News Feed
+            Back to Feed
           </button>
         </div>
       </div>
@@ -157,45 +171,42 @@ function NewsFeed({ newsArticles, username }) {
   return (
     <div className="flex min-h-screen flex-col items-center p-8">
       <div className="max-w-3xl w-full">
-        <h1 className="text-4xl font-bold text-center mb-8">Your News Feed</h1>
+        <h1 className="text-4xl font-bold text-center mb-8">
+          THE INBOX ZING!
+        </h1>
   
-        <div className="space-y-6">
+        <div className="space-y-4">
           {articles.length > 0 ? (
             articles.map((article, index) => (
               <div
                 key={index}
-                className={`flex bg-gray-100 rounded-lg overflow-hidden shadow-md transition-transform transform hover:scale-105 cursor-pointer ${article.isRead ? 'bg-gray-300' : ''}`}
-                onClick={() => handleArticleClick(article)} // Start reading the article
+                onClick={() => handleArticleClick(article)}
+                className={`flex ${index % 2 === 0 ? '' : 'flex-row-reverse'} cursor-pointer`}
               >
-                <div className="w-1/3 h-32"> {/* Add fixed height for consistency */}
-                  <a
-                    href={article.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block" // Ensures the image remains clickable
-                  >
-                    <img
-                      src={article.urlToImage || 'https://via.placeholder.com/150'}
-                      alt={article.title}
-                      className="object-cover w-full h-full"
-                    />
-                  </a>
+                <div className="w-1/2 p-4 bg-[#E8E8E8]">
+                  <h3 className="font-semibold mb-2">{article.title}</h3>
+                  <p className="text-sm">{article.description}</p>
+                  <p className="text-sm mt-2">Source: {article.source}</p>
                 </div>
-                <div className="w-2/3 p-4">
-                  <span className="text-xs text-gray-500">{article.source}</span>
-                  <h3 className="font-semibold text-lg mb-2">{article.title}</h3>
-                  <p className="text-sm text-gray-700 mb-4">{article.description}</p>
-                  <p className="text-xs text-gray-400">Published on: {new Date(article.published_at).toLocaleDateString()}</p>
+                <div className="w-1/2 bg-[#D5C3C6] flex items-center justify-center">
+                  {article.urlToImage ? (
+                    <img
+                      src={article.urlToImage}
+                      alt={article.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-4xl text-gray-400">×</span>
+                  )}
                 </div>
               </div>
             ))
           ) : (
-            <p className="text-center text-gray-500">No articles found matching your preferences.</p>
+            <p className="text-center">No articles found matching your preferences.</p>
           )}
         </div>
       </div>
     </div>
   );
 }
-
 export default NewsFeed;
