@@ -10,6 +10,8 @@ from pydantic import BaseModel
 from datetime import datetime, timedelta
 from typing import List, Optional
 from bson import ObjectId
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 import certifi
 import openai
 
@@ -102,6 +104,38 @@ def summarize_article(article: dict, summary_style: str) -> str:
     else:
         return f"Title: {article['title']}\nSource: {article['source']['name']}\nDescription: {article['description']}\nURL: {article['url']}\n"
         
+def send_news_summary_email(user_email: str, username: str, articles: List[dict], summary_style: str):
+    # Get SendGrid API Key from environment
+    sendgrid_api_key = os.getenv('SENDGRID_API_KEY')
+    sendgrid_email=os.getenv('SENDGRID_FROM_EMAIL')
+    
+    # Prepare email content
+    email_body = f"Hi {username},\n\nHere's your news summary:\n\n"
+    
+    for article in articles:
+        email_body += f"Title: {article['title']}\n"
+        email_body += f"Summary: {article.get('summary', 'No summary available')}\n\n"
+    
+    email_body += "Stay informed!\n"
+
+    # Create email message
+    message = Mail(
+        from_email=sendgrid_email,  # Must be a verified sender in SendGrid
+        to_emails=user_email,
+        subject=f'{username}, Your News Summary',
+        html_content=f'<pre>{email_body}</pre>'
+    )
+
+    try:
+        # Send email using SendGrid
+        sg = SendGridAPIClient(sendgrid_api_key)
+        response = sg.send(message)
+        print(f"Email sent to {user_email}. Status Code: {response.status_code}")
+        return True
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return False
+    
 # All endpoints are added below
 
 @fast_app.get("/status")
@@ -142,17 +176,76 @@ async def signup(user: UserCreate):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error creating user: {str(e)}")
     
-# Endpoint to handle logging in a user
+# # Endpoint to handle logging in a user
+# @fast_app.post("/login")
+# async def login(user: UserLogin):
+#     db_user = users_collection.find_one({"username": user.username})
+#     if db_user and db_user["password"] == hash_password(user.password):
+#       # if username and password match user in db, login is successful
+#         print("Backend login successful for:", user.username)
+#         now = datetime.now()
+#         last_login = db_user.get("last_login")
+#         streak = db_user.get("streak", 0)
+
+#         if last_login:
+#             last_login_date = last_login.date()
+#             if now.date() == last_login_date + timedelta(days=1):
+#                 streak += 1  # Increment streak for consecutive days
+#             elif now.date() > last_login_date + timedelta(days=1):
+#                 streak = 0  # Reset streak for missed days
+
+#         # Update last_login and streak
+#         users_collection.update_one(
+#             {"username": user.username},
+#             {"$set": {"last_login": now, "streak": streak}}
+#         )
+
+#         return JSONResponse(content={"message": "Login successful", "username": user.username})
+#         # if error display this message
+#     raise HTTPException(status_code=401, detail="Invalid username or password")
+
 @fast_app.post("/login")
 async def login(user: UserLogin):
     db_user = users_collection.find_one({"username": user.username})
     if db_user and db_user["password"] == hash_password(user.password):
-      # if username and password match user in db, login is successful
         print("Backend login successful for:", user.username)
         now = datetime.now()
         last_login = db_user.get("last_login")
         streak = db_user.get("streak", 0)
 
+        # Check if preferences exist and frequency is set
+        if "preferences" in db_user and "frequency" in db_user["preferences"]:
+            # Check if it's time to send an email
+            last_email_sent = db_user.get("last_email_sent")
+            frequency_hours = db_user["preferences"]["frequency"]
+
+            # If no last email sent or time since last email exceeds frequency
+            if not last_email_sent or (now - last_email_sent).total_seconds() / 3600 >= frequency_hours:
+                # Fetch news articles
+                try:
+                    # Use the existing get_news function to fetch articles
+                    news_response = await get_news(user.username)
+                    articles = news_response.get("articles", [])
+
+                    # Send email if articles exist
+                    if articles:
+                        email_sent = send_news_summary_email(
+                            user_email=db_user["email"],
+                            username=user.username,
+                            articles=articles,
+                            summary_style=db_user["preferences"].get("summaryStyle", "brief")
+                        )
+
+                        # Update last email sent time if email was sent successfully
+                        if email_sent:
+                            users_collection.update_one(
+                                {"username": user.username},
+                                {"$set": {"last_email_sent": now}}
+                            )
+                except Exception as e:
+                    print(f"Error processing news for email: {e}")
+
+        # Rest of your existing login logic remains the same
         if last_login:
             last_login_date = last_login.date()
             if now.date() == last_login_date + timedelta(days=1):
@@ -167,7 +260,7 @@ async def login(user: UserLogin):
         )
 
         return JSONResponse(content={"message": "Login successful", "username": user.username})
-        # if error display this message
+    
     raise HTTPException(status_code=401, detail="Invalid username or password")
 
 # Endpoint to handle modifying of previously set user preferences
