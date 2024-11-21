@@ -106,17 +106,39 @@ def hash_password(password: str) -> str:
 def verify_password(stored_password: str, provided_password: str) -> bool:
     return stored_password == hash_password(provided_password)
 
-# Fetch news articles from NewsAPI based on user preferences
 def fetch_news(preferences: UserPreferences) -> List[dict]:
-    params = {
-        'apiKey': NEWS_API_KEY,
-        'sources': preferences.sources,  # Use the sources parameter
-        'pageSize': 10  # Fetch 10 articles
-    }
-    response = requests.get(NEWS_API_URL, params=params)
-    if response.status_code == 200:
-        return response.json().get('articles', [])
-    return []
+    articles = []
+    page = 1  # Start fetching from the first page
+
+    while len(articles) < 10:  # Keep fetching until we have 10 articles
+        params = {
+            'apiKey': NEWS_API_KEY,
+            'sources': preferences.sources,  # Use the sources parameter
+            'pageSize': 10,  # Fetch 10 articles per request
+            'page': page  # Fetch the next page
+        }
+
+        response = requests.get(NEWS_API_URL, params=params)
+        
+        if response.status_code == 200:
+            new_articles = response.json().get('articles', [])
+            
+            # Filter articles to ensure they have complete data
+            for article in new_articles:
+                if all(key in article and article[key] for key in ['title', 'description', 'urlToImage', 'content']):
+                    articles.append(article)
+                
+                # Stop if we already have 10 complete articles
+                if len(articles) >= 10:
+                    break
+
+        page += 1  # Move to the next page
+
+        # If no new articles were fetched, break the loop to prevent an infinite loop
+        if not new_articles:
+            break
+
+    return articles[:10]
 
 def summarize_article(article: dict, summary_style: str) -> str:
     content = article.get("content", "No content available.")
@@ -565,6 +587,8 @@ async def generate_podcast_script(articles, summary_style, username):
             f"- Incorporate humor, light commentary, or thought-provoking remarks to make the podcast engaging.\n"
             f"- Transition smoothly between stories.\n\n"
             f"Conclude with an upbeat outro, thanking {username} and urging them to stay curious and motivated.\n"
+            f" A motivational call-to-action for NYUAD students: 'Stay informed, keep earning points, and remember—once you hit 500 points, you’re just one free coffee from MYSC away!'.\n"
+            f" End on an uplifting note, urging {username} to stay curious and motivated.\n"
             f"Ensure the podcast fits within 2 minutes (~300 words), sounds like it’s delivered by a charismatic and lively host."
         )
 

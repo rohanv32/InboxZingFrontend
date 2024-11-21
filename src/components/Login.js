@@ -69,7 +69,7 @@ function Login({ onLogin, onNavigateToSignUp }) {
           }
 
             // Fetch news for the logged-in user
-            try {
+            /* try {
                 const newsResponse = await fetch(`/news/${formData.username}`);
                 if (newsResponse.ok) {
                     const newsData = await newsResponse.json();
@@ -79,7 +79,7 @@ function Login({ onLogin, onNavigateToSignUp }) {
                 }
             } catch (newsErr) {
                 console.error("An error occurred while fetching news:", newsErr);
-            }
+            } */
         } else {
             const error = await response.json();
             console.error("Login error response:", error);

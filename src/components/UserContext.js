@@ -3,8 +3,8 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 export const defaultPreferences = {
   country: 'us',
   category: 'general',
-  sources: 'cnn,abc-news,fox-news',
-  summaryStyle: 'detailed', 
+  sources: 'cnn,abc-news',
+  summaryStyle: 'brief', 
   frequency: 24,
 };
 
