@@ -5,3 +5,6 @@ requests
 fastapi
 pydantic
 uvicorn
+openai
+pydub
+grok

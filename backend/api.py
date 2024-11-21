@@ -5,7 +5,8 @@ from pymongo import MongoClient
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Cookie, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 from typing import List, Optional
@@ -14,6 +15,24 @@ from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 import certifi
 import openai
+import tempfile
+from openai import OpenAI
+from pydub import AudioSegment
+from pydub.utils import which
+from pydub.utils import mediainfo
+import time
+from groq import Groq
+import asyncio
+
+AudioSegment.converter = which("ffmpeg") 
+AudioSegment.ffprobe = which("ffprobe")
+
+# Define the directory path where you want to save the audio files
+audio_directory = os.path.join(os.getcwd(), "src", "audio")
+
+# Ensure the audio directory exists
+if not os.path.exists(audio_directory):
+    os.makedirs(audio_directory)
 
 # Model used to Capture user sign up credentials.
 class UserCreate(BaseModel):
@@ -57,6 +76,8 @@ class UpdatePasswordRequest(BaseModel):
 load_dotenv()
 fast_app = FastAPI()
 
+fast_app.mount("/audio", StaticFiles(directory="src/audio"), name="audio")
+
 # connect to database (mongoDB)
 MONGO_URI = os.getenv("MONGO_URI")
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
@@ -66,6 +87,9 @@ client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
 db = client['news_app']
 users_collection = db['users']
 news_articles_collection = db['news_articles']
+grok_api_key = os.environ.get("GROQ_API_KEY")
+grok_client = Groq(api_key=grok_api_key)
+
 
 # uniqueness of email and username maintained
 users_collection.create_index([("email", 1)], unique=True)
@@ -95,14 +119,35 @@ def fetch_news(preferences: UserPreferences) -> List[dict]:
 
 # Summarize news articles based on user-selected style
 def summarize_article(article: dict, summary_style: str) -> str:
-    if summary_style == 'brief':
-        return f"Title: {article['title']}\nSource: {article['source']['name']}\n"
-    elif summary_style == 'humorous':
-        return f"Title: {article['title']} - Brought to you by the always trustworthy {article['source']['name']}!\n"
-    elif summary_style == 'eli5':
-        return f"This article titled '{article['title']}' from {article['source']['name']} is basically saying: {article['description']}.\n"
+    # Use article['content'] as input for richer summaries
+    content = article.get("content", "No content available.")
+
+    # Define the prompt based on style
+    if summary_style == "Brief":
+        prompt = f"Summarize this article briefly, keeping it insightful, yet concise. Please go straght into the summary, do not repeat the prompt in any way.: {content}"
+    elif summary_style == "Detailed":
+        prompt = f"Summarize this article in detail, but keep it interesting and thought provoking. Please go straght into the summary, do not repeat the prompt in any way.: {content}"
+    elif summary_style == "ELI5":
+        prompt = f"Explain the key points of this article like I'm five years old, in a concise, yet interesting manner. Please go straght into the summary, do not repeat the prompt in any way.: {content}"
+    elif summary_style == "Humorous":
+        prompt = f"Summarize this article in a humorous way, to aid user understand and take away the most from the daily news through humour. Please go straght into the summary, do not repeat the prompt in any way.: {content}"
+    elif summary_style == "Storytelling":
+        prompt = f"Turn this article into a storytelling format, that keep the user engrossed and helps them come way learning new things. Please go straght into the summary, do not repeat the prompt in any way.: {content}"
+    elif summary_style == "Poetic":
+        prompt = f"Turn this article into a poetic recitation, that is intrguing, yet informative: {content}"
     else:
-        return f"Title: {article['title']}\nSource: {article['source']['name']}\nDescription: {article['description']}\nURL: {article['url']}\n"
+        prompt = f"Provide a generic summary of this article: {content}"
+
+    # Call Grok API
+    chat_completion = grok_client.chat.completions.create(
+        messages=[
+            {"role": "user", "content": prompt}
+        ],
+        model="llama3-8b-8192",
+    )
+
+    response = chat_completion.choices[0].message.content.strip()
+    return response
         
 def send_news_summary_email(user_email: str, username: str, articles: List[dict], summary_style: str):
     # Get SendGrid API Key from environment
@@ -473,88 +518,143 @@ async def delete_user(username: str):
     # error handling part when the user is not found
     raise HTTPException(status_code=404, detail="User not found")
 
-def generate_podcast_script(articles, summary_style):
-    news_content = ""
-
-
-    # Validate that articles is a list and contains data
+async def generate_podcast_script(articles, summary_style, username):
     if not isinstance(articles, list) or not articles:
         print("No articles or invalid structure provided.")
         raise HTTPException(status_code=500, detail="No articles found or invalid article structure.")
-
-
-    # Construct news content for prompt
-    try:
-        for idx, article_entry in enumerate(articles, 1):
-            if 'articles' not in article_entry:
-                raise KeyError("'articles' key missing in article entry")
-            
-            for sub_idx, sub_article in enumerate(article_entry['articles'], 1):
-                title = sub_article.get('title', 'No Title')
-                summary = sub_article.get('summary', 'No Summary Available')
-                news_content += f"{idx}.{sub_idx}. Title: {title} - {summary}\n"
-
-
-        print("Constructed news_content for OpenAI prompt:", news_content)
-
-
-    except KeyError as e:
-        print("Error in article format:", e)
-        raise HTTPException(status_code=500, detail=f"Error in article format: {e}")
-
-
-    # Define the messages for the new OpenAI chat API
-    messages = [
-        {"role": "system", "content": "You are a helpful assistant that summarizes news articles for a podcast script."},
-        {"role": "user", "content": (
-            f"Create a 2-minute podcast script that summarizes the following news articles in a {summary_style} style:\n\n{news_content}\n\n"
-            "The podcast should be approximately 300 words to fit within 2 minutes of spoken content."
-        )}
-    ]
     
-    print("Generated messages for OpenAI Chat API:", messages)
-
-
-    # OpenAI API call with the new SDK's case-sensitive Chat API
     try:
+        news_content = ""
+        for idx, article in enumerate(articles, 1):
+            title = article.get('title', 'No Title')
+            summary = article.get('summary', 'No Summary Available')
+            source = article.get('source', 'Unknown Source') 
+            news_content += f"{idx}. Title: {title}\nSource: {source}\nSummary: {summary}\n\n"
+
+        prompt = (
+            f"You are a creative assistant skilled in writing engaging and entertaining podcast scripts. "
+            f"Below is a collection of summarized news articles. Create a seamless and personalized 2-minute podcast script for a user named {username}, based on these articles. "
+            f"Tailor the script to the summary style specified ({summary_style}) and focus on making it conversational, lively, and relatable.\n\n"
+            f"Begin with a warm, energetic introduction that includes sound effects or a musical cue (e.g., '🎵 [Music fades in] Good morning, {username}! Welcome to your personalized news podcast!'). "
+            f"Show personality, like a friendly host talking directly to {username}.\n\n"
+            f"For each article:\n"
+            f"{news_content}" 
+            f"- Summarize it concisely, mentioning the title, key points, and the source. Provide insights, context, or interesting interpretations beyond just reading the title and description. "
+            f"- Add rhetorical questions (e.g., 'Can you believe it?' or 'What do you think about this?') to engage {username}.\n"
+            f"- Incorporate humor, light commentary, or thought-provoking remarks to make the podcast engaging.\n"
+            f"- Transition smoothly between stories.\n\n"
+            f"Conclude with an upbeat outro, thanking {username} and urging them to stay curious and motivated.\n"
+            f"Ensure the podcast fits within 2 minutes (~300 words), sounds like it’s delivered by a charismatic and lively host."
+        )
+
+        # OpenAI API call using the updated syntax
         response = openai.chat.completions.create(
-            model="gpt-3.5-turbo",  # or "gpt-4" if you have access
-            messages=messages,
+            model="gpt-3.5-turbo", 
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant writing podcast scripts."},
+                {"role": "user", "content": prompt}
+            ],
             max_tokens=300,
             temperature=0.7
         )
-        
-        # Access the response content correctly
+
         podcast_text = response.choices[0].message.content.strip()
-        print("Generated podcast script:", podcast_text)
+        #print("Generated Podcast Script:", podcast_text)
         return podcast_text
-
-
     except Exception as e:
-        print("Unexpected error during OpenAI API call:", e)  # Log unexpected errors
-        raise HTTPException(status_code=500, detail="An unexpected error occurred in OpenAI API call")
+        print("Error during podcast script generation:", e)
+        raise HTTPException(status_code=500, detail="An error occurred while generating the podcast script.")
 
+async def generate_podcast_audio(script):
+    try:
+        timestamp = str(int(time.time()))
+        podcast_audio_path = os.path.join(audio_directory, f"podcast_audio_{timestamp}.mp3")
+
+        # OpenAI API for text-to-speech (TTS)
+        response = openai.audio.speech.create(
+            model="tts-1",
+            voice="alloy", 
+            input=script
+        )
+        print("TTS Response:", response)
+
+        with open(podcast_audio_path, "wb") as f:
+            f.write(response.content)
+
+        print(f"Generated audio saved at: {podcast_audio_path}")
+        return podcast_audio_path
+    except Exception as e:
+        print("Error during TTS conversion:", e)
+        raise HTTPException(status_code=500, detail="An error occurred while converting text to speech.")
+
+async def add_intro_outro_music(audio_path, music_path, username):
+    try:
+        audio_directory = "src/audio"  # Ensure this matches the static file directory
+        os.makedirs(audio_directory, exist_ok=True)
+
+        if audio_path.endswith(".mp3"):
+            wav_audio_path = os.path.join(audio_directory, f"{username}_podcast_audio.wav")
+            AudioSegment.from_file(audio_path, format="mp3").export(wav_audio_path, format="wav")
+            audio_path = wav_audio_path
+
+        music_file_path = os.path.join(audio_directory, music_path)
+        podcast_audio = AudioSegment.from_file(audio_path, format="wav")
+        background_music = AudioSegment.from_file(music_file_path, format="wav")
+
+        intro_music = background_music[:10000].fade_in(3000) - 20
+        outro_music = background_music[:10000].fade_out(3000) - 20
+
+        combined_audio = intro_music + podcast_audio.fade_in(3000).fade_out(3000) + outro_music
+        final_audio_path = os.path.join(audio_directory, f"{username}_final_podcast_audio.wav")
+        combined_audio.export(final_audio_path, format="wav")
+
+        # Return the relative URL for the generated file
+        return f"/audio/{username}_final_podcast_audio.wav"
+    except Exception as e:
+        print("Error adding intro/outro music:", e)
+        raise HTTPException(status_code=500, detail="Error adding intro/outro music.")
 
 @fast_app.get("/podcast_script/{username}")
 async def create_podcast_script(username: str):
     try:
-        # Fetch articles and log them for debugging
-        articles = fetch_news(username)
-        #print("Fetched articles:", articles)  # Debugging line
-        
-        # Fetch user preferences
+        # Fetch user preferences (simulate database calls)
         user = users_collection.find_one({"username": username})
-        summary_style = user["preferences"]["summaryStyle"] if user and "preferences" in user else "brief"
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found.")
 
-        # Generate podcast script
-        podcast_script = generate_podcast_script(articles, summary_style)
+        user_news = news_articles_collection.find_one({"username": username})
+        if not user_news or not user_news.get("articles"):
+            raise HTTPException(status_code=404, detail="No articles found for this user.")
+
+        articles = user_news["articles"]
+        preferences = user.get("preferences", {})
+        summary_style = preferences.get("summaryStyle", "brief")
+
+        # Generate podcast script asynchronously and wait for it to complete
+        podcast_script = await generate_podcast_script(articles, summary_style, username)
         print(podcast_script)
 
-        return JSONResponse(content={"podcast_script": podcast_script})
+        # Generate audio for the podcast script asynchronously and wait for it to complete
+        audio_path = await generate_podcast_audio(podcast_script)
 
+        # Add intro and outro music asynchronously and wait for it to complete
+        final_audio_path = await add_intro_outro_music(audio_path, "podcast_intro.wav", username)
+
+        # Ensure the final path is a relative URL for the response
+        audio_url = os.path.join("src", "audio", final_audio_path)
+
+        # Return both the script and audio URL only after everything is ready
+        return JSONResponse(content={
+            "podcast_script": podcast_script,
+            "audio_url": audio_url  # This is the relative URL for the audio
+        })
+
+    except HTTPException as e:
+        print(f"Error in podcast script endpoint: {e.detail}")
+        return JSONResponse(content={"error": e.detail}, status_code=e.status_code)
     except Exception as e:
-        print("Error in podcast script endpoint:", e)  # Detailed error log
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+        print("Unexpected error in podcast script endpoint:", e)
+        return JSONResponse(content={"error": "An unexpected error occurred."}, status_code=500)
     
 # Complete the points update endpoint
 @fast_app.post("/points/update")

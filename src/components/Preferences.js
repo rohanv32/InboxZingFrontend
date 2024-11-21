@@ -362,7 +362,7 @@ function Preferences({ onUpdateComplete, username }) {
   const [categories, setCategories] = useState([]);
   const [sources, setSources] = useState([]);
 
-  const summaryStyles = ['detailed', 'brief'];
+  const summaryStyles = ['Detailed', 'Brief', 'ELI5', 'Humourous', 'Storytelling', 'Poetic'];
   const frequencies = [1, 3, 6, 12, 24, 48, 72, 96];
   // Fetch data from API on mount
 useEffect(() => {
