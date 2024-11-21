@@ -610,7 +610,7 @@ async def generate_podcast_audio(script):
 
 async def add_intro_outro_music(audio_path, music_path, username):
     try:
-        audio_directory = "src/audio"  # Ensure this matches the static file directory
+        audio_directory = "src/audio"
         os.makedirs(audio_directory, exist_ok=True)
 
         if audio_path.endswith(".mp3"):
@@ -638,13 +638,13 @@ async def add_intro_outro_music(audio_path, music_path, username):
 @fast_app.get("/podcast_script/{username}")
 async def create_podcast_script(username: str):
     try:
-        # Define the expected path for the final audio file
         audio_dir = os.path.join("src", "audio")
         final_audio_file = os.path.join(audio_dir, f"{username}_final_podcast_audio.wav")
 
         # Check if the final audio file already exists
         if os.path.exists(final_audio_file):
             audio_url = f"/audio/{username}_final_podcast_audio.wav"
+            print(audio_url)
             return JSONResponse(content={"audio_url": audio_url})
 
         # Fetch user preferences (simulate database calls)
@@ -670,7 +670,7 @@ async def create_podcast_script(username: str):
         final_audio_path = await add_intro_outro_music(audio_path, "podcast_intro.wav", username)
 
         # Ensure the final path is a relative URL for the response
-        audio_url = os.path.join("src", "audio", final_audio_path)
+        audio_url = final_audio_path
 
         # Return only the audio URL
         return JSONResponse(content={"audio_url": audio_url})

@@ -7,4 +7,6 @@ pydantic
 uvicorn
 openai
 pydub
-grok
+groq
+sendgrid
+ssl
