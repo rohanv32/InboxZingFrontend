@@ -136,6 +136,37 @@ function NewsFeed({ newsArticles, username }) {
     );
   }
 
+  // if (selectedArticle) {
+  //   return (
+  //     <div className="flex min-h-screen flex-col items-center p-8 pt-24">
+  //       <div className="max-w-2xl w-full">
+  //         <h1 className="text-4xl font-bold text-center mb-8">
+  //           THE INBOX ZING!
+  //         </h1>
+  
+  //         <div className="bg-[#E8E8E8] rounded-sm p-4">
+  //           <h2 className="font-semibold mb-2">{selectedArticle.title}</h2>
+  //           <p className="text-sm">{selectedArticle.summary}</p>
+  //           <p className="text-sm mt-2">Source: {selectedArticle.source}</p>
+  //           {selectedArticle.urlToImage && (
+  //             <img
+  //               src={selectedArticle.urlToImage}
+  //               alt={selectedArticle.title}
+  //               className="w-full mt-4 rounded-sm"
+  //             />
+  //           )}
+  //         </div>
+  
+  //         <button
+  //           onClick={handleBackToFeed}
+  //           className="w-full bg-[#D5C3C6] rounded-sm py-3 text-black mt-8"
+  //         >
+  //           Back to Feed
+  //         </button>
+  //       </div>
+  //     </div>
+  //   );
+  // }
   if (selectedArticle) {
     return (
       <div className="flex min-h-screen flex-col items-center p-8 pt-24">
@@ -144,30 +175,46 @@ function NewsFeed({ newsArticles, username }) {
             THE INBOX ZING!
           </h1>
   
-          <div className="bg-[#E8E8E8] rounded-sm p-4">
-            <h2 className="font-semibold mb-2">{selectedArticle.title}</h2>
-            <p className="text-sm">{selectedArticle.summary}</p>
-            <p className="text-sm mt-2">Source: {selectedArticle.source}</p>
-            {selectedArticle.urlToImage && (
-              <img
-                src={selectedArticle.urlToImage}
-                alt={selectedArticle.title}
-                className="w-full mt-4 rounded-sm"
-              />
-            )}
+          <div className="mb-4">
+            <h2 className="text-2xl font-semibold mb-2">{selectedArticle.title}</h2>
+            <p className="text-sm text-gray-600">Source: {selectedArticle.source}</p>
           </div>
   
-          <button
-            onClick={handleBackToFeed}
-            className="w-full bg-[#D5C3C6] rounded-sm py-3 text-black mt-8"
-          >
-            Back to Feed
-          </button>
+          <div className="border border-gray-200 rounded-sm">
+            <div className="bg-[#E8E8E8] p-6">
+              <p className="text-base leading-relaxed">{selectedArticle.summary}</p>
+              
+              {selectedArticle.urlToImage && (
+                <img
+                  src={selectedArticle.urlToImage}
+                  alt={selectedArticle.title}
+                  className="w-full mt-6 rounded-sm"
+                />
+              )}
+            </div>
+          </div>
+  
+          <div className="flex gap-4 mt-8">
+            <button
+              onClick={handleBackToFeed}
+              className="flex-1 bg-[#D5C3C6] rounded-sm py-3 text-black hover:bg-[#c8b2b5] transition-colors"
+            >
+              Back to Feed
+            </button>
+            
+            <a
+              href={selectedArticle.url}
+              target="_blank"
+              rel="noopener noreferrer" 
+              className="flex-1 bg-[#E8E8E8] rounded-sm py-3 text-black text-center hover:bg-[#dbdbdb] transition-colors"
+            >
+              Go to Source
+            </a>
+          </div>
         </div>
       </div>
     );
   }
-
   return (
     <div className="flex min-h-screen flex-col items-center p-8 pt-24">
       <div className="max-w-3xl w-full">
