@@ -362,40 +362,100 @@ function Preferences({ onUpdateComplete, username }) {
   const [categories, setCategories] = useState([]);
   const [sources, setSources] = useState([]);
 
-  const summaryStyles = ['Detailed', 'Brief', 'ELI5', 'Humourous', 'Storytelling', 'Poetic'];
+  const summaryStyles = ['Detailed', 'Brief', 'ELI5', 'Humorous', 'Storytelling', 'Poetic'];
   const frequencies = [1, 3, 6, 12, 24, 48, 72, 96];
+  const countryCodeMap = {
+    ae: 'United Arab Emirates',
+    ar: 'Argentina',
+    at: 'Austria',
+    au: 'Australia',
+    be: 'Belgium',
+    bg: 'Bulgaria',
+    br: 'Brazil',
+    ca: 'Canada',
+    ch: 'Switzerland',
+    cn: 'China',
+    co: 'Colombia',
+    cu: 'Cuba',
+    cz: 'Czech Republic',
+    de: 'Germany',
+    es: 'Spain',
+    eg: 'Egypt',
+    fr: 'France',
+    gb: 'United Kingdom',
+    gr: 'Greece',
+    hk: 'Hong Kong',
+    hu: 'Hungary',
+    id: 'Indonesia',
+    ie: 'Ireland',
+    il: 'Israel',
+    in: 'India',
+    is: 'Iceland',
+    it: 'Italy',
+    jp: 'Japan',
+    kr: 'South Korea',
+    lt: 'Lithuania',
+    lv: 'Latvia',
+    ma: 'Morocco',
+    mx: 'Mexico',
+    my: 'Malaysia',
+    ng: 'Nigeria',
+    nl: 'Netherlands',
+    no: 'Norway',
+    nz: 'New Zealand',
+    ph: 'Philippines',
+    pk: 'Pakistan',
+    pl: 'Poland',
+    pt: 'Portugal',
+    ro: 'Romania',
+    rs: 'Serbia',
+    ru: 'Russia',
+    sa: 'Saudi Arabia',
+    se: 'Sweden',
+    sg: 'Singapore',
+    si: 'Slovenia',
+    sk: 'Slovakia',
+    th: 'Thailand',
+    tr: 'Turkey',
+    tw: 'Taiwan',
+    ua: 'Ukraine',
+    us: 'United States',
+    ve: 'Venezuela',
+    za: 'South Africa',
+    zh: 'China'
+  };
   // Fetch data from API on mount
-useEffect(() => {
-  async function fetchData() {
-    try {
-      const response = await axios.get(
-        `https://newsapi.org/v2/top-headlines/sources?apiKey=${NEWS_API_KEY}`
-      );
-      const sources = response.data.sources;
-
-      // Process the data
-      const countryData = {};
-      sources.forEach((source) => {
-        const { country, category, id, name } = source;
-        if (!countryData[country]) countryData[country] = {};
-        if (!countryData[country][category]) countryData[country][category] = [];
-        countryData[country][category].push({ id, name });
-      });
-
-      setData(countryData);
-      setCountries(Object.keys(countryData));
-      setLocalPreferences((prev) => ({
-        ...prev,
-        country: null,
-      }));
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      setError('Failed to fetch news sources. Please try again later.');
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const response = await axios.get(
+          `https://newsapi.org/v2/top-headlines/sources?apiKey=${NEWS_API_KEY}`
+        );
+        const sources = response.data.sources;
+  
+        // Process the data
+        const countryData = {};
+        sources.forEach((source) => {
+          const { country, category, id, name } = source;
+          if (!countryData[country]) countryData[country] = {};
+          if (!countryData[country][category]) countryData[country][category] = [];
+          countryData[country][category].push({ id, name });
+        });
+  
+        setData(countryData);
+        setCountries(Object.keys(countryData));
+        setLocalPreferences((prev) => ({
+          ...prev,
+          country: null,
+        }));
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setError('Failed to fetch news sources. Please try again later.');
+      }
     }
-  }
-
-  fetchData();
-}, []);
+  
+    fetchData();
+  }, []);
 
 const handleSelection = (field, value) => {
   setLocalPreferences((prev) => ({
@@ -506,22 +566,22 @@ const renderStep = () => {
     case 1:
       return (
         <>
-          <h2 className="text-xl text-center mb-8">
-            Select your country
-          </h2>
+          <h2 className="text-xl text-center mb-8">Select your country</h2>
           <div className="space-y-3">
-            {countries.map((country) => (
+            {countries.map((countryCode) => (
               <button
-                key={country}
-                onClick={() => handleSelection('country', country)}
+                key={countryCode}
+                onClick={() => handleSelection('country', countryCode)}
                 className={`w-full flex items-center bg-[#E8E8E8] rounded-sm py-3 px-4 ${
-                  localPreferences.country === country ? 'border-2 border-[#D5C3C6]' : ''
+                  localPreferences.country === countryCode ? 'border-2 border-[#D5C3C6]' : ''
                 }`}
               >
-                <div className={`w-4 h-4 rounded-full mr-4 ${
-                  localPreferences.country === country ? 'bg-[#D5C3C6]' : 'border-2 border-[#D5C3C6]'
-                }`}></div>
-                {country.toUpperCase()}
+                <div
+                  className={`w-4 h-4 rounded-full mr-4 ${
+                    localPreferences.country === countryCode ? 'bg-[#D5C3C6]' : 'border-2 border-[#D5C3C6]'
+                  }`}
+                ></div>
+                {countryCodeMap[countryCode] || countryCode.toUpperCase()}
               </button>
             ))}
           </div>
@@ -531,9 +591,7 @@ const renderStep = () => {
     case 2:
       return (
         <>
-          <h2 className="text-xl text-center mb-8">
-            Select a category
-          </h2>
+          <h2 className="text-xl text-center mb-8">Select a category</h2>
           <div className="space-y-3">
             {categories.map((category) => (
               <button
@@ -543,49 +601,51 @@ const renderStep = () => {
                   localPreferences.category === category ? 'border-2 border-[#D5C3C6]' : ''
                 }`}
               >
-                <div className={`w-4 h-4 rounded-full mr-4 ${
-                  localPreferences.category === category ? 'bg-[#D5C3C6]' : 'border-2 border-[#D5C3C6]'
-                }`}></div>
-                {category}
+                <div
+                  className={`w-4 h-4 rounded-full mr-4 ${
+                    localPreferences.category === category ? 'bg-[#D5C3C6]' : 'border-2 border-[#D5C3C6]'
+                  }`}
+                ></div>
+                {category.charAt(0).toUpperCase() + category.slice(1)}
               </button>
             ))}
           </div>
         </>
       );
 
-      case 3:
-        return (
-          <>
-            <h2 className="text-xl text-center mb-8">
-              Select your news sources (Up to 20)
-            </h2>
-            <div className="space-y-3">
-              {sources.map((source) => {
-                const selectedSources = localPreferences.sources ? localPreferences.sources.split(',') : [];
-                const isSelected = selectedSources.includes(source.id);
-                return (
-                  <button
-                    key={source.id}
-                    onClick={() => handleSelection('source', source.id)}
-                    className={`w-full flex items-center bg-[#E8E8E8] rounded-sm py-3 px-4 ${
-                      isSelected ? 'border-2 border-[#D5C3C6]' : ''
-                    }`}
-                  >
-                    <div className={`w-4 h-4 rounded-full mr-4 ${
+    case 3:
+      return (
+        <>
+          <h2 className="text-xl text-center mb-8">Select your news sources (Up to 20)</h2>
+          <div className="space-y-3">
+            {sources.map((source) => {
+              const selectedSources = localPreferences.sources ? localPreferences.sources.split(',') : [];
+              const isSelected = selectedSources.includes(source.id);
+              return (
+                <button
+                  key={source.id}
+                  onClick={() => handleSelection('source', source.id)}
+                  className={`w-full flex items-center bg-[#E8E8E8] rounded-sm py-3 px-4 ${
+                    isSelected ? 'border-2 border-[#D5C3C6]' : ''
+                  }`}
+                >
+                  <div
+                    className={`w-4 h-4 rounded-full mr-4 ${
                       isSelected ? 'bg-[#D5C3C6]' : 'border-2 border-[#D5C3C6]'
-                    }`}></div>
-                    {source.name}
-                  </button>
-                );
-              })}
-            </div>
-            {localPreferences.sources && (
-              <p className="text-center mt-4">
-                {localPreferences.sources.split(',').filter(Boolean).length} source(s) selected. You can select up to 20.
-              </p>
-            )}
-          </>
-        );
+                    }`}
+                  ></div>
+                  {source.name}
+                </button>
+              );
+            })}
+          </div>
+          {localPreferences.sources && (
+            <p className="text-center mt-4">
+              {localPreferences.sources.split(',').filter(Boolean).length} source(s) selected. You can select up to 20.
+            </p>
+          )}
+        </>
+      );
   
       case 4:
         return (

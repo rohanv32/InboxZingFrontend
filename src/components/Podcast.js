@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 
 const Podcast = ({ username }) => {
-    const [podcastScript, setPodcastScript] = useState("");
     const [audioUrl, setAudioUrl] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -18,7 +17,6 @@ const Podcast = ({ username }) => {
                 }
 
                 const data = await response.json();
-                setPodcastScript(data.podcast_script);
                 setAudioUrl(data.audio_url);
             } catch (error) {
                 setError(error.message);
@@ -42,24 +40,17 @@ const Podcast = ({ username }) => {
                 ) : error ? (
                     <p className="text-red-500 mb-4">Error: {error}</p>
                 ) : (
-                    <>
-                        <div className="podcast-script mb-6">
-                            <h2 className="text-2xl font-semibold mb-4">Podcast Script</h2>
-                            <p className="text-left">{podcastScript}</p>
-                        </div>
-
-                        <div className="podcast-audio mb-6">
-                            <h2 className="text-2xl font-semibold mb-4">Audio</h2>
-                            {audioUrl ? (
-                                <audio controls className="w-full">
-                                    <source src={audioUrl} type="audio/wav" />
-                                    Your browser does not support the audio element.
-                                </audio>
-                            ) : (
-                                <p className="text-gray-500">No audio available</p>
-                            )}
-                        </div>
-                    </>
+                    <div className="podcast-audio mb-6">
+                        <h2 className="text-2xl font-semibold mb-4">Audio</h2>
+                        {audioUrl ? (
+                            <audio controls className="w-full">
+                                <source src={audioUrl} type="audio/wav" />
+                                Your browser does not support the audio element.
+                            </audio>
+                        ) : (
+                            <p className="text-gray-500">No audio available</p>
+                        )}
+                    </div>
                 )}
             </div>
         </div>

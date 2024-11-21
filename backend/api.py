@@ -23,6 +23,7 @@ from pydub.utils import mediainfo
 import time
 from groq import Groq
 import asyncio
+import re
 
 AudioSegment.converter = which("ffmpeg") 
 AudioSegment.ffprobe = which("ffprobe")
@@ -117,28 +118,26 @@ def fetch_news(preferences: UserPreferences) -> List[dict]:
         return response.json().get('articles', [])
     return []
 
-# Summarize news articles based on user-selected style
 def summarize_article(article: dict, summary_style: str) -> str:
-    # Use article['content'] as input for richer summaries
     content = article.get("content", "No content available.")
+    if not content:  
+        content = article.get("title", "No content or title available.")
 
-    # Define the prompt based on style
     if summary_style == "Brief":
-        prompt = f"Summarize this article briefly, keeping it insightful, yet concise. Please go straght into the summary, do not repeat the prompt in any way.: {content}"
+        prompt = f"Summarize this article briefly, keeping it insightful, yet concise. Please go straight into the summary, do not repeat the prompt in any way.: {content}"
     elif summary_style == "Detailed":
-        prompt = f"Summarize this article in detail, but keep it interesting and thought provoking. Please go straght into the summary, do not repeat the prompt in any way.: {content}"
+        prompt = f"Summarize this article in detail, but keep it interesting and thought-provoking. Please go straight into the summary, do not repeat the prompt in any way.: {content}"
     elif summary_style == "ELI5":
-        prompt = f"Explain the key points of this article like I'm five years old, in a concise, yet interesting manner. Please go straght into the summary, do not repeat the prompt in any way.: {content}"
+        prompt = f"Explain the key points of this article like I'm five years old, in a concise, yet interesting manner. Please go straight into the summary, do not repeat the prompt in any way.: {content}"
     elif summary_style == "Humorous":
-        prompt = f"Summarize this article in a humorous way, to aid user understand and take away the most from the daily news through humour. Please go straght into the summary, do not repeat the prompt in any way.: {content}"
+        prompt = f"Summarize this article in a humorous way, to aid the user in understanding and taking away the most from the daily news through humor. Please go straight into the summary, do not repeat the prompt in any way.: {content}"
     elif summary_style == "Storytelling":
-        prompt = f"Turn this article into a storytelling format, that keep the user engrossed and helps them come way learning new things. Please go straght into the summary, do not repeat the prompt in any way.: {content}"
+        prompt = f"Turn this article into a storytelling format, that keeps the user engrossed and helps them come away learning new things. Please go straight into the summary, do not repeat the prompt in any way.: {content}"
     elif summary_style == "Poetic":
-        prompt = f"Turn this article into a poetic recitation, that is intrguing, yet informative: {content}"
+        prompt = f"Turn this article into a poetic recitation, that is intriguing, yet informative: {content}"
     else:
         prompt = f"Provide a generic summary of this article: {content}"
 
-    # Call Grok API
     chat_completion = grok_client.chat.completions.create(
         messages=[
             {"role": "user", "content": prompt}
@@ -147,7 +146,21 @@ def summarize_article(article: dict, summary_style: str) -> str:
     )
 
     response = chat_completion.choices[0].message.content.strip()
-    return response
+
+    def clean_summary(summary: str, style: str) -> str:
+        
+        patterns = [
+            r"^Here(('|’)s| is) a summary of the article.*?:",
+            r"^Summarize(d|s|ing|ion).*?:",
+            r"^Explain(ed|ing|s).*?:",
+            r"^This article is about.*?:",
+            r"^Turn(ed|ing|s) into.*?:",
+        ]
+        combined_pattern = re.compile("|".join(patterns), re.IGNORECASE)
+        return re.sub(combined_pattern, "", summary).strip()
+
+    cleaned_response = clean_summary(response, summary_style)
+    return cleaned_response
         
 def send_news_summary_email(user_email: str, username: str, articles: List[dict], summary_style: str):
     # Get SendGrid API Key from environment
@@ -321,6 +334,14 @@ async def update_preferences(username: str, preferences: UserPreferences):
     # if error, user not found displayed
     print(f"Update result: {result.modified_count}")
     if result.modified_count:
+        # Construct the path to the audio file
+        audio_dir = os.path.join("src", "audio")
+        final_audio_file = os.path.join(audio_dir, f"{username}_final_podcast_audio.wav")
+
+        # Check if the audio file exists and delete it if it does
+        if os.path.exists(final_audio_file):
+            os.remove(final_audio_file)
+            print(f"Deleted existing audio file: {final_audio_file}")
         return {"message": "Preferences updated successfully"}
     raise HTTPException(status_code=404, detail="User not found")
 
@@ -527,9 +548,9 @@ async def generate_podcast_script(articles, summary_style, username):
         news_content = ""
         for idx, article in enumerate(articles, 1):
             title = article.get('title', 'No Title')
-            summary = article.get('summary', 'No Summary Available')
+            description = article.get('description', 'No Description Available')
             source = article.get('source', 'Unknown Source') 
-            news_content += f"{idx}. Title: {title}\nSource: {source}\nSummary: {summary}\n\n"
+            news_content += f"{idx}. Title: {title}\nSource: {source}\nSummary: {description}\n\n"
 
         prompt = (
             f"You are a creative assistant skilled in writing engaging and entertaining podcast scripts. "
@@ -617,6 +638,15 @@ async def add_intro_outro_music(audio_path, music_path, username):
 @fast_app.get("/podcast_script/{username}")
 async def create_podcast_script(username: str):
     try:
+        # Define the expected path for the final audio file
+        audio_dir = os.path.join("src", "audio")
+        final_audio_file = os.path.join(audio_dir, f"{username}_final_podcast_audio.wav")
+
+        # Check if the final audio file already exists
+        if os.path.exists(final_audio_file):
+            audio_url = f"/audio/{username}_final_podcast_audio.wav"
+            return JSONResponse(content={"audio_url": audio_url})
+
         # Fetch user preferences (simulate database calls)
         user = users_collection.find_one({"username": username})
         if not user:
@@ -632,7 +662,6 @@ async def create_podcast_script(username: str):
 
         # Generate podcast script asynchronously and wait for it to complete
         podcast_script = await generate_podcast_script(articles, summary_style, username)
-        print(podcast_script)
 
         # Generate audio for the podcast script asynchronously and wait for it to complete
         audio_path = await generate_podcast_audio(podcast_script)
@@ -643,11 +672,8 @@ async def create_podcast_script(username: str):
         # Ensure the final path is a relative URL for the response
         audio_url = os.path.join("src", "audio", final_audio_path)
 
-        # Return both the script and audio URL only after everything is ready
-        return JSONResponse(content={
-            "podcast_script": podcast_script,
-            "audio_url": audio_url  # This is the relative URL for the audio
-        })
+        # Return only the audio URL
+        return JSONResponse(content={"audio_url": audio_url})
 
     except HTTPException as e:
         print(f"Error in podcast script endpoint: {e.detail}")
