@@ -22,13 +22,7 @@ function SignUp({ onSignUp, onNavigateToLogin }) {
 
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match.");
-      /* alert("Passwords do not match, please check your passwords and try again."); */
-      Swal.fire({
-        icon: "error",
-        title: "Password Mismatch",
-        text: "Your passwords do not match!",
-        footer: 'Please check your passwords and try again.'
-      });
+      alert("Passwords do not match, please check your passwords and try again.");
       return;
     }
 

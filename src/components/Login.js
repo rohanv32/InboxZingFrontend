@@ -27,15 +27,8 @@ function Login({ onLogin, onNavigateToSignUp }) {
 
         if (response.ok) {
             const data = await response.json();
-            /* console.log("Login success response data:", data);
-            alert(data.message); */
-            Swal.fire({
-              title: 'Login Successful! 10 points added for login. Earn 500 for a free ☕ from MYSC !!',
-              text: `Welcome, ${data.username}!`,
-              icon: 'success',
-              timer: 3000, // Optional: auto-close the alert after 3 seconds
-              showConfirmButton: true, // Optional: hide the OK button
-            });
+            console.log("Login success response data:", data);
+            alert(data.message);
             await onLogin(formData);
 
             // Fetch the current points from the server
