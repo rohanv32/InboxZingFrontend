@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Home from './components/Home';
 import SignUp from './components/SignUp';
 import Login from './components/Login';
@@ -138,6 +139,7 @@ function App() {
       fetchUserData();
     } else {
       setActiveTab('Home');
+      navigate('/');
     }
   }, []); // Run only once when component mounts
 
@@ -148,7 +150,7 @@ function App() {
   }, [activeTab, isLoggedIn, isRedirectedFromSignUp]);
 
   const handleUpdateComplete = () => {
-    setActiveTab('NewsFeed');
+    navigate('/newsfeed');
   };
 
   const handleTabChange = (tab) => {
@@ -156,47 +158,46 @@ function App() {
   };
 
   const handleNavigateToSignUp = () => {
-    setActiveTab('SignUp');
+    navigate('/signup');
   };
 
   const handleNavigateToLogin = () => {
-    setActiveTab('Login');
+    navigate('/login');
   };
 
   const handleNavigateToPreferences = () => {
-    setActiveTab('Preferences');
+    navigate('/preferences');
   };
 
   const handleLogoClick = () => {
     if (isLoggedIn) {
-      setActiveTab('NewsFeed');
+      navigate('/newsfeed');
     } else {
-      setActiveTab('Home');
+      navigate('/');
     }
   };
 
   useEffect(() => {
-    // Only check login status on initial render
-    const checkLoginStatus = async () => {
-      try {
-        const response = await fetch('/status');
-        const data = await response.json();
-  
-        if (data.isLoggedIn && data.username) {
-          setIsLoggedIn(true);
-          setUsername(data.username); // Fetch username from server response
-          setActiveTab('NewsFeed');
-        } else {
-          setActiveTab('Home');
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      setIsLoggedIn(true);
+      const fetchUserData = async () => {
+        try {
+          const response = await fetch('/user', {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          if (response.ok) {
+            const userData = await response.json();
+            setUsername(userData.username);
+          }
+        } catch (error) {
+          console.error('Error fetching user data:', error);
         }
-      } catch (error) {
-        console.error('Error checking login status:', error);
-      }
-    };
-  
-    // Call the function to check login status
-    checkLoginStatus();
-  }, []); // Empty dependency array ensures this runs only once when the component mounts
+      };
+      fetchUserData();
+    }
+  }, []);
 
   return (
     <UserProvider> {/* Ensure UserContext is available */}
@@ -204,25 +205,20 @@ function App() {
         isLoggedIn={isLoggedIn}
         onLogout={handleLogout}
         onTabChange={handleTabChange}
-        onLogoClick={() => setActiveTab('Home')}
+        onLogoClick={handleLogoClick}
       />
-      <div className="App">
-        <div className="content">
-          {activeTab === 'Home' && !isLoggedIn && <Home onTabChange={handleTabChange} />}
-          {activeTab === 'SignUp' && !isLoggedIn && <SignUp onSignUp={handleSignUp} onNavigateToLogin={handleNavigateToLogin} />}
-          {activeTab === 'Login' && !isLoggedIn && <Login onLogin={handleLogin} onNavigateToSignUp={handleNavigateToSignUp} />}
-          {activeTab === 'EarnPoint' && (isLoggedIn || isRedirectedFromSignUp) && <EarnPoint />}
-          {activeTab === 'Preferences' && (isLoggedIn || isRedirectedFromSignUp) && (
-            <Preferences onUpdateComplete={handleUpdateComplete} username={username}/>
-          )}
-          {activeTab === 'NewsFeed' && (isLoggedIn || isRedirectedFromSignUp) && (<NewsFeed newsArticles={newsArticles} username={username}/>)}
-          {activeTab === 'DeleteUser' && (isLoggedIn || isRedirectedFromSignUp) && (<DeleteUser onDelete={handleDeleteAccount} username={username} />)}
-          {activeTab === 'Profile' && isLoggedIn && (
-            <Profile onNavigatetoPreferences={handleNavigateToPreferences} username={username} />
-          )}
-          {activeTab === 'Podcast' && isLoggedIn && <Podcast username={username} />}
-        </div>
-      </div>
+      <Routes>
+        <Route path="/" element={<Home onTabChange={handleTabChange}/>} />
+        <Route path="/signup" element={!isLoggedIn ? <SignUp onSignUp={handleSignUp} onNavigateToLogin={handleNavigateToLogin} /> : <Navigate to="/preferences" />} />
+        <Route path="/login" element={!isLoggedIn ? <Login onLogin={handleLogin} onNavigateToSignUp={handleNavigateToSignUp}/> : <Navigate to="/newsfeed" />} />
+        <Route path="/preferences" element={(isLoggedIn || isRedirectedFromSignUp) ? <Preferences onUpdateComplete={handleUpdateComplete} username={username} /> : <Navigate to="/login" />} />
+        <Route path="/newsfeed" element={isLoggedIn ? <NewsFeed newsArticles={newsArticles} username={username} /> : <Navigate to="/login" />} />
+        <Route path="/deleteuser" element={isLoggedIn ? <DeleteUser onDelete={handleDeleteAccount} username={username} /> : <Navigate to="/" />} />
+        <Route path="/profile" element={isLoggedIn ? <Profile onNavigatetoPreferences={handleNavigateToPreferences} username={username} /> : <Navigate to="/login" />} />
+        <Route path="/podcast" element={isLoggedIn ? <Podcast username={username} /> : <Navigate to="/login" />} />
+        <Route path="/earnpoint" element={(isLoggedIn || isRedirectedFromSignUp) ? <EarnPoint /> : <Navigate to="/login" />} />
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
     </UserProvider>
   );
 }

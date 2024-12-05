@@ -32,7 +32,7 @@ function DeleteUser({ onDelete, username }) {
       sessionStorage.removeItem('authToken'); // Example: removing auth token from sessionStorage
 
       // Redirect to login or home page after account deletion
-      navigate('/login'); // Using navigate instead of history.push
+      navigate('/'); // Using navigate instead of history.push
 
     } catch (err) {
       setError('An error occurred while deleting your account. Please try again.');
@@ -40,6 +40,11 @@ function DeleteUser({ onDelete, username }) {
       setLoading(false);
     }
   };
+
+  const handleGoBack = () => {
+    navigate('/newsfeed');
+  };
+
 
   return (
     <div className="flex min-h-screen items-center justify-center">
@@ -67,11 +72,13 @@ function DeleteUser({ onDelete, username }) {
           {loading ? 'Deleting...' : 'Delete Account'}
         </button>
         
-        {/* Link to renavigate to settings page */}
         <div className="mt-4 text-center text-sm">
-          <a href="/settings" className="text-black underline">
+          <button 
+            onClick={handleGoBack} 
+            className="text-black underline"
+          >
             Go Back
-          </a>
+          </button>
         </div>
       </div>
     </div>

@@ -4,7 +4,7 @@ export const defaultPreferences = {
   country: 'us',
   category: 'general',
   sources: 'cnn,abc-news',
-  summaryStyle: 'brief', 
+  summaryStyle: 'Brief', 
   frequency: 24,
 };
 

@@ -1,6 +1,9 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
-function Home({ onTabChange }) {
+function Home() {
+  const navigate = useNavigate();
+  
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="max-w-md w-full p-8 text-center">
@@ -13,17 +16,17 @@ function Home({ onTabChange }) {
         </h2>
         
         <div className="flex flex-col space-y-4">
-          {/* Sign Up button changes tab to 'SignUp' */}
+          {/* Sign Up button navigates to /signup */}
           <button
-            onClick={() => onTabChange('SignUp')}
+            onClick={() => navigate('/signup')}
             className="w-full flex justify-center rounded-sm bg-[#D5C3C6] py-3 text-black"
           >
             Sign Up
           </button>
           
-          {/* Login button changes tab to 'Login' */}
+          {/* Login button navigates to /login */}
           <button
-            onClick={() => onTabChange('Login')}
+            onClick={() => navigate('/login')}
             className="w-full flex justify-center rounded-sm bg-[#D5C3C6] py-3 text-black"
           >
             Login

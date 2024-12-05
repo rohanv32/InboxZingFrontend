@@ -122,23 +122,26 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogPanel } from '@headlessui/react';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useUserContext } from './UserContext';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const Header = ({ isLoggedIn, onLogout, onTabChange, onLogoClick }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
   const { points } = useUserContext();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const navigation = isLoggedIn
-    ? [
-        { name: 'News Feed', onClick: () => onTabChange('NewsFeed') },
-        { name: 'Preferences', onClick: () => onTabChange('Preferences') },
-        { name: 'Delete Account', onClick: () => onTabChange('DeleteUser') },
-        { name: 'Profile', onClick: () => onTabChange('Profile') },
-        { name: 'Podcast', onClick: () => onTabChange('Podcast') },
-        { name: 'Logout', onClick: onLogout },
-      ]
-    : [];
+  ? [
+      { name: 'News Feed', path: '/newsfeed' },
+      { name: 'Preferences', path: '/preferences' },
+      { name: 'Delete Account', path: '/deleteuser' },
+      { name: 'Profile', path: '/profile' },
+      { name: 'Podcast', path: '/podcast' },
+      { name: 'Logout', onClick: onLogout },
+    ]
+  : [];
 
   // Handle scroll state
   useEffect(() => {
@@ -152,6 +155,12 @@ const Header = ({ isLoggedIn, onLogout, onTabChange, onLogoClick }) => {
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
+
+  const handleNavigation = (path) => {
+    if (path) {
+      navigate(path);
+    }
+  };
 
   return (
     <div className="relative isolate bg-white">
@@ -189,12 +198,24 @@ const Header = ({ isLoggedIn, onLogout, onTabChange, onLogoClick }) => {
 
           {/* Navigation for Large Screens */}
           <div className="hidden lg:flex lg:gap-x-12">
-            {navigation.map((item) => (
-              <button key={item.name} onClick={item.onClick} className="text-sm font-semibold text-gray-900">
-                {item.name}
-              </button>
-            ))}
-          </div>
+          {navigation.map((item) => (
+            <button
+              key={item.name}
+              onClick={() => {
+                if (item.onClick) {
+                  item.onClick();  // Call the logout function directly here
+                } else {
+                  handleNavigation(item.path);
+                }
+              }}
+              className={`text-sm font-semibold text-gray-900 ${
+                location.pathname === item.path ? 'text-blue-500' : ''
+              }`}
+            >
+              {item.name}
+            </button>
+          ))}
+        </div>
         </nav>
 
         {/* Mobile Menu */}
@@ -221,8 +242,10 @@ const Header = ({ isLoggedIn, onLogout, onTabChange, onLogoClick }) => {
                   {navigation.map((item) => (
                     <button
                       key={item.name}
-                      onClick={item.onClick}
-                      className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold text-gray-900 hover:bg-gray-50"
+                      onClick={() => handleNavigation(item.path)}
+                      className={`-mx-3 block rounded-lg px-3 py-2 text-base font-semibold text-gray-900 hover:bg-gray-50 ${
+                        location.pathname === item.path ? 'text-blue-500' : ''
+                      }`}
                     >
                       {item.name}
                     </button>
