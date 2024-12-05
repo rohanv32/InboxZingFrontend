@@ -1,10 +1,13 @@
 import React, { useState, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { UserContext } from './UserContext';
+import Swal from 'sweetalert2'; // Import SweetAlert2
 
 function Login({ onLogin, onNavigateToSignUp }) {
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const { setPoints, setStreak} = useContext(UserContext);
+  const navigate = useNavigate();
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -24,8 +27,15 @@ function Login({ onLogin, onNavigateToSignUp }) {
 
         if (response.ok) {
             const data = await response.json();
-            console.log("Login success response data:", data);
-            alert(data.message);
+            /* console.log("Login success response data:", data);
+            alert(data.message); */
+            Swal.fire({
+              title: 'Login Successful! 10 points added for login. Earn 500 for a free ☕ from MYSC !!',
+              text: `Welcome, ${data.username}!`,
+              icon: 'success',
+              timer: 3000, // Optional: auto-close the alert after 3 seconds
+              showConfirmButton: true, // Optional: hide the OK button
+            });
             await onLogin(formData);
 
             // Fetch the current points from the server
@@ -83,7 +93,12 @@ function Login({ onLogin, onNavigateToSignUp }) {
         } else {
             const error = await response.json();
             console.error("Login error response:", error);
-            alert(error.detail);
+            Swal.fire({
+              icon: "error",
+              title: "Login Error",
+              text: error.message,
+              footer: "Please try again with a different username or sign up."
+            });
         }
     } catch (err) {
         console.error("An error occurred:", err);
@@ -172,9 +187,9 @@ function Login({ onLogin, onNavigateToSignUp }) {
 
           <div className="text-center">
             <span>Don't have an account? </span>
-            <button 
-              type="button" 
-              onClick={onNavigateToSignUp} 
+            <button
+              type="button"
+              onClick={() => navigate('/signup')}
               className="text-black underline"
             >
               Sign up

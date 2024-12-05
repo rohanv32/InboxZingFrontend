@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useUserActions } from './UserContext';
 import { defaultPreferences } from './UserContext';
+import Swal from 'sweetalert2';
 
 function SignUp({ onSignUp, onNavigateToLogin }) {
   const [formData, setFormData] = useState({
@@ -11,6 +13,7 @@ function SignUp({ onSignUp, onNavigateToLogin }) {
   });
   const [error, setError] = useState(null);
   const { setUsername, setPreferences } = useUserActions();
+  const navigate = useNavigate();
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -19,7 +22,13 @@ function SignUp({ onSignUp, onNavigateToLogin }) {
 
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match.");
-      alert("Passwords do not match, please check your passwords and try again.");
+      /* alert("Passwords do not match, please check your passwords and try again."); */
+      Swal.fire({
+        icon: "error",
+        title: "Password Mismatch",
+        text: "Your passwords do not match!",
+        footer: 'Please check your passwords and try again.'
+      });
       return;
     }
 
@@ -87,6 +96,12 @@ function SignUp({ onSignUp, onNavigateToLogin }) {
 
     } catch (error) {
       setError(error.message);
+      Swal.fire({
+        icon: "error",
+        title: "Sign Up Error",
+        text: error.message,
+        footer: "Please try again with a different username or email."
+      });
     }
   };
 
@@ -181,11 +196,14 @@ function SignUp({ onSignUp, onNavigateToLogin }) {
           </div>
 
           <div className="mt-4 text-center text-sm">
-            <span>Already have an account? </span>
-            <button onClick={onNavigateToLogin} className="text-black underline">
+          <span>Already have an account? </span>
+          <button 
+            onClick={() => navigate('/login')} 
+            className="text-black underline"
+          >
             Login
           </button>
-          </div>
+        </div>
         </form>
       </div>
     </div>
