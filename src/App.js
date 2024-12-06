@@ -12,6 +12,7 @@ import Header from './components/Header';
 import Podcast from './components/Podcast'
 import { useNavigate } from 'react-router-dom';
 import EarnPoint from './components/EarnPoint';
+import Swal from 'sweetalert2';
 
 function App() {
   const context = useUserContext();  // Get context from the UserProvider
@@ -45,15 +46,29 @@ function App() {
           setActiveTab('NewsFeed');
           navigate('/newsfeed');
         } else {
-          alert('Login failed: No username in response');
+          Swal.fire({
+            icon: "error",
+            title: "Login Error",
+            text: "Login failed. No username in response."
+          });
         }
       } else {
         const error = await response.json();
-        alert(error.detail || 'An error occurred during login');
+        Swal.fire({
+          icon: "error",
+          title: "Login Error",
+          text: "An error occurred during login."
+        });
+
       }
     } catch (error) {
       console.error('Error logging in:', error);  
-      alert('An error occurred while logging in');
+      Swal.fire({
+        icon: "error",
+        title: "Login Error",
+        text: error.message,
+        footer: "An error occurred while logging in."
+      });
     }
   };
 
@@ -66,7 +81,10 @@ function App() {
   };
 
   const handleDeleteAccount = async () => {
-      alert("User deleted!");
+      Swal.fire({
+        icon: "warning",
+        title: "User deleted!",
+      });
       handleLogout();
   };
 
@@ -102,15 +120,27 @@ function App() {
           navigate('/preferences');
         } else {
           const errorData = await loginResponse.json();
-          alert(`Login failed: ${errorData.detail || 'Unknown error'}`);
+          Swal.fire({
+            icon: "error",
+            title: "Oops...",
+            text: "Login failed: ${errorData.detail || 'Unknown error'}",
+          });
         }
       } else {
         const errorData = await response.json();
-        alert(`Signup failed: ${errorData.detail || 'Unknown error'}`);
+        Swal.fire({
+          icon: "error",
+          title: "Oops...",
+          text: "Signup failed: ${errorData.detail || 'Unknown error'}",
+        });
       }
     } catch (error) {
       console.error('Error during signup or login:', error);
-      alert('An error occurred during signup');
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: "An error occurred during signup.",
+      });
     }
 };
 

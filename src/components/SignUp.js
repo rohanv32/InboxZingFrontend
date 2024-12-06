@@ -22,7 +22,11 @@ function SignUp({ onSignUp, onNavigateToLogin }) {
 
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match.");
-      alert("Passwords do not match, please check your passwords and try again.");
+      Swal.fire({
+        icon: "error",
+        title: "Passwords do not match.",
+        text: "Please check your passwords and try again.",
+      });
       return;
     }
 
@@ -48,7 +52,7 @@ function SignUp({ onSignUp, onNavigateToLogin }) {
       }
 
       const result = await response.json();
-      alert(result.message);
+      Swal.fire(result.message);
 
       // Set the username in UserContext
       setUsername(formData.username);

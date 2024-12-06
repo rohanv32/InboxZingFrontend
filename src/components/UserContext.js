@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import Swal from 'sweetalert2';
 
 export const defaultPreferences = {
   country: 'us',
@@ -58,7 +59,19 @@ export function UserProvider({ children }) {
     // Milestone check (e.g., 100 points)
     if (!milestone && points + earnedPoints >= 100) {
       setMilestone(true);
-      alert('Congrats! You reached 100 points!');
+      Swal.fire({
+        title: "Congrats! You reached 100 points!",
+        width: 600,
+        padding: "3em",
+        color: "#716add",
+        background: "#fff url(/images/trees.png)",
+        backdrop: `
+          rgba(0,0,123,0.4)
+          url("/images/nyan-cat.gif")
+          left top
+          no-repeat
+        `
+      });
     }
   };
 

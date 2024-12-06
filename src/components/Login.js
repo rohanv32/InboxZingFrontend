@@ -1,7 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserContext } from './UserContext';
-import Swal from 'sweetalert2'; // Import SweetAlert2
+import Swal from 'sweetalert2';
 
 function Login({ onLogin, onNavigateToSignUp }) {
   const [formData, setFormData] = useState({ username: '', password: '' });
@@ -28,7 +28,11 @@ function Login({ onLogin, onNavigateToSignUp }) {
         if (response.ok) {
             const data = await response.json();
             console.log("Login success response data:", data);
-            alert(data.message);
+            Swal.fire({
+              title: "Welcome back!",
+              text: data.message,
+              icon: "success"
+            });
             await onLogin(formData);
 
             // Fetch the current points from the server
@@ -95,7 +99,12 @@ function Login({ onLogin, onNavigateToSignUp }) {
         }
     } catch (err) {
         console.error("An error occurred:", err);
-        alert("An error occurred during login. Please try again later.");
+        Swal.fire({
+          icon: "error",
+          title: "Login Error",
+          text: err.message,
+          footer: "An error occurred during login. Please try again later."
+        });
     }
 };
 
@@ -112,7 +121,13 @@ function Login({ onLogin, onNavigateToSignUp }) {
       <ForgotPassword
         email={formData.username}
         onEmailChange={(e) => setFormData({ ...formData, username: e.target.value })}
-        onSubmit={() => alert("Verification email sent!")}
+        onSubmit={() => Swal.fire({
+          position: "top-end",
+          icon: "success",
+          title: "Verification email sent!",
+          showConfirmButton: false,
+          timer: 1500
+        })}
         notification={"Please check your email for further instructions."}
         onBack={handleBackToLogin}
       />
