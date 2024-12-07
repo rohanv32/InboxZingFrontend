@@ -6,7 +6,7 @@ import Swal from 'sweetalert2';
 function Login({ onLogin, onNavigateToSignUp }) {
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const { setPoints, setStreak} = useContext(UserContext);
+  const { setPoints, setStreak } = useContext(UserContext);
   const navigate = useNavigate();
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -16,97 +16,97 @@ function Login({ onLogin, onNavigateToSignUp }) {
     console.log("Form Data: ", formData);
 
     try {
-        const response = await fetch('/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData)
+      const response = await fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      console.log("Response status:", response.status);
+      console.log("Response ok:", response.ok);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Login success response data:", data);
+        Swal.fire({
+          title: "Welcome back!",
+          text: data.message,
+          icon: "success"
         });
+        await onLogin(formData);
 
-        console.log("Response status:", response.status);
-        console.log("Response ok:", response.ok);
+        // Fetch the current points from the server
+        const userPointsResponse = await fetch(`/points/${formData.username}`);
+        if (userPointsResponse.ok) {
+          const userPointsData = await userPointsResponse.json();
+          console.log("Fetched user points from server:", userPointsData);
 
-        if (response.ok) {
-            const data = await response.json();
-            console.log("Login success response data:", data);
-            Swal.fire({
-              title: "Welcome back!",
-              text: data.message,
-              icon: "success"
-            });
-            await onLogin(formData);
+          // Calculate the new points (add login gift points)
+          const updatedPoints = userPointsData.points + 10;
 
-            // Fetch the current points from the server
-            const userPointsResponse = await fetch(`/points/${formData.username}`);
-            if (userPointsResponse.ok) {
-                const userPointsData = await userPointsResponse.json();
-                console.log("Fetched user points from server:", userPointsData);
+          // Update points on the backend
+          const pointsUpdateResponse = await fetch(`/points/update?username=${formData.username}&points=10`, {
+            method: 'POST',
+          });
+          if (pointsUpdateResponse.ok) {
+            console.log(`10 points added for login. Updated total: ${updatedPoints}`);
+            setPoints(updatedPoints); // Update points in context
+          } else {
+            console.error("Failed to update points on the server.");
+          }
+        } else {
+          console.error("Failed to fetch user points from the server.");
+        }
 
-                // Calculate the new points (add login gift points)
-                const updatedPoints = userPointsData.points + 10;
+        try {
+          const streakResponse = await fetch(`/streak/${formData.username}`);
+          if (streakResponse.ok) {
+            const streakData = await streakResponse.json();
+            console.log("Fetched streak data:", streakData);
 
-                // Update points on the backend
-                const pointsUpdateResponse = await fetch(`/points/update?username=${formData.username}&points=10`, {
-                    method: 'POST',
-                });
-                if (pointsUpdateResponse.ok) {
-                    console.log(`10 points added for login. Updated total: ${updatedPoints}`);
-                    setPoints(updatedPoints); // Update points in context
-                } else {
-                    console.error("Failed to update points on the server.");
-                }
-            } else {
-                console.error("Failed to fetch user points from the server.");
-            }
-
-            try {
-              const streakResponse = await fetch(`/streak/${formData.username}`);
-              if (streakResponse.ok) {
-                  const streakData = await streakResponse.json();
-                  console.log("Fetched streak data:", streakData);
-
-                  // Update streak in context
-                  setStreak(streakData.streak);
-                  console.log("New streak data:", streakData);
-              } else {
-                  console.error("Failed to fetch streak data.");
-              }
-              
-          } catch (streakErr) {
-              console.error("An error occurred while fetching streak:", streakErr);
+            // Update streak in context
+            setStreak(streakData.streak);
+            console.log("New streak data:", streakData);
+          } else {
+            console.error("Failed to fetch streak data.");
           }
 
-            // Fetch news for the logged-in user
-            /* try {
-                const newsResponse = await fetch(`/news/${formData.username}`);
-                if (newsResponse.ok) {
-                    const newsData = await newsResponse.json();
-                    console.log("Fetched news data:", newsData); // Log the fetched news data
-                } else {
-                    console.error("Failed to fetch news articles.");
-                }
-            } catch (newsErr) {
-                console.error("An error occurred while fetching news:", newsErr);
-            } */
-        } else {
-            const error = await response.json();
-            console.error("Login error response:", error);
-            Swal.fire({
-              icon: "error",
-              title: "Login Error",
-              text: error.message,
-              footer: "Please try again with a different username or sign up."
-            });
+        } catch (streakErr) {
+          console.error("An error occurred while fetching streak:", streakErr);
         }
-    } catch (err) {
-        console.error("An error occurred:", err);
+
+        // Fetch news for the logged-in user
+        /* try {
+            const newsResponse = await fetch(`/news/${formData.username}`);
+            if (newsResponse.ok) {
+                const newsData = await newsResponse.json();
+                console.log("Fetched news data:", newsData); // Log the fetched news data
+            } else {
+                console.error("Failed to fetch news articles.");
+            }
+        } catch (newsErr) {
+            console.error("An error occurred while fetching news:", newsErr);
+        } */
+      } else {
+        const error = await response.json();
+        console.error("Login error response:", error);
         Swal.fire({
           icon: "error",
           title: "Login Error",
-          text: err.message,
-          footer: "An error occurred during login. Please try again later."
+          text: error.message,
+          footer: "Please try again with a different username or sign up."
         });
+      }
+    } catch (err) {
+      console.error("An error occurred:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Login Error",
+        text: err.message,
+        footer: "An error occurred during login. Please try again later."
+      });
     }
-};
+  };
 
   const onForgotPassword = () => {
     setShowForgotPassword(true);
@@ -140,7 +140,7 @@ function Login({ onLogin, onNavigateToSignUp }) {
         <h1 className="text-center text-3xl font-bold mb-6">
           THE INBOX ZING!
         </h1>
-        
+
         <h2 className="text-center text-xl mb-6">
           Welcome back
         </h2>
@@ -210,7 +210,6 @@ function Login({ onLogin, onNavigateToSignUp }) {
 }
 
 function ForgotPassword({ email, onEmailChange, onSubmit, notification, onBack }) {
-
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = (e) => {

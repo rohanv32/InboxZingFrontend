@@ -24,6 +24,9 @@ import time
 from groq import Groq
 import asyncio
 import re
+import secrets
+from pydantic import BaseModel
+
 
 AudioSegment.converter = which("ffmpeg") 
 AudioSegment.ffprobe = which("ffprobe")
@@ -55,6 +58,15 @@ class UserPreferences(BaseModel):
     sources: str
     summaryStyle: str
     frequency: int
+
+class UserCreate(BaseModel):
+    username: str
+    email: str
+    password: str
+    points: int = 0
+    last_login: Optional[datetime] = None
+    confirmation_code: Optional[str] = None
+
 
 # Model used to capture the news articles that match user preferences
 class NewsArticle(BaseModel):
@@ -91,7 +103,7 @@ news_articles_collection = db['news_articles']
 grok_api_key = os.environ.get("GROQ_API_KEY")
 grok_client = Groq(api_key=grok_api_key)
 
-
+temp_users_collection = db['temp_users']
 # uniqueness of email and username maintained
 users_collection.create_index([("email", 1)], unique=True)
 users_collection.create_index([("username", 1)], unique=True)
@@ -227,19 +239,50 @@ async def get_status(username: str = Cookie(None)):
         # If no cookie, the user is not logged in
         return {"isLoggedIn": False, "username": None}
     
-# Endpoint to handle signing up a a new user
+# # Endpoint to handle signing up a a new user
+# @fast_app.post("/signup")
+# async def signup(user: UserCreate):
+#     # Hash the user's password for security
+#     hashed_password = hash_password(user.password)
+    
+#     # Check if the username already exists
+#     existing_user = users_collection.find_one({"username": user.username})
+#     if existing_user:
+#         raise HTTPException(status_code=400, detail="Username already exists")
+#     # Create the new user document
+#     new_user = {
+#         "username": user.username,
+#         "email": user.email,
+#         "password": hashed_password,
+#         "created_at": datetime.now(),
+#         "points": 0,
+#         "streak": 0,
+#         "last_login": None,
+#     }
+
+#     # Try to insert the new user into the database
+#     try:
+#         users_collection.insert_one(new_user)
+#                 # Send confirmation email
+#         send_confirmation_email(user.email, confirmation_code)
+#         return {"message": "User created successfully. Please check your email to confirm your account."}
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=f"Error creating user: {str(e)}")
 @fast_app.post("/signup")
 async def signup(user: UserCreate):
     # Hash the user's password for security
     hashed_password = hash_password(user.password)
-    
+
     # Check if the username already exists
     existing_user = users_collection.find_one({"username": user.username})
     if existing_user:
         raise HTTPException(status_code=400, detail="Username already exists")
-    
-    # Create the new user document
-    new_user = {
+
+    # Generate a confirmation code
+    confirmation_code = secrets.token_hex(6)  # Generate a 12-character hexadecimal string
+
+    # Create the temporary user document
+    temp_user = {
         "username": user.username,
         "email": user.email,
         "password": hashed_password,
@@ -247,42 +290,77 @@ async def signup(user: UserCreate):
         "points": 0,
         "streak": 0,
         "last_login": None,
+        "confirmation_code": confirmation_code
     }
 
-    # Try to insert the new user into the database
+    # Try to insert the temporary user into the database
     try:
-        users_collection.insert_one(new_user)
-        return {"message": "User created successfully"}
+        temp_users_collection.insert_one(temp_user)
+
+        # Send confirmation email
+        send_confirmation_email(user.email, confirmation_code)
+
+        return {"message": "Signup initiated. Please check your email to confirm your account."}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error creating user: {str(e)}")
-    
-# # Endpoint to handle logging in a user
-# @fast_app.post("/login")
-# async def login(user: UserLogin):
-#     db_user = users_collection.find_one({"username": user.username})
-#     if db_user and db_user["password"] == hash_password(user.password):
-#       # if username and password match user in db, login is successful
-#         print("Backend login successful for:", user.username)
-#         now = datetime.now()
-#         last_login = db_user.get("last_login")
-#         streak = db_user.get("streak", 0)
+        raise HTTPException(status_code=400, detail=f"Error initiating signup: {str(e)}")
 
-#         if last_login:
-#             last_login_date = last_login.date()
-#             if now.date() == last_login_date + timedelta(days=1):
-#                 streak += 1  # Increment streak for consecutive days
-#             elif now.date() > last_login_date + timedelta(days=1):
-#                 streak = 0  # Reset streak for missed days
+def send_confirmation_email(user_email: str, confirmation_code: str):
+    # Get SendGrid API Key from environment
+    sendgrid_api_key = os.getenv('SENDGRID_API_KEY')
+    sendgrid_email = os.getenv('SENDGRID_FROM_EMAIL')
 
-#         # Update last_login and streak
-#         users_collection.update_one(
-#             {"username": user.username},
-#             {"$set": {"last_login": now, "streak": streak}}
-#         )
+    # Prepare email content
+    email_body = f"Hi,\n\nYour confirmation code is: {confirmation_code}\n\nPlease use this code to confirm your account.\n\nStay informed!"
 
-#         return JSONResponse(content={"message": "Login successful", "username": user.username})
-#         # if error display this message
-#     raise HTTPException(status_code=401, detail="Invalid username or password")
+    # Create email message
+    message = Mail(
+        from_email=sendgrid_email,  # Must be a verified sender in SendGrid
+        to_emails=user_email,
+        subject='Confirm Your Account',
+        html_content=f'<pre>{email_body}</pre>'
+    )
+
+    try:
+        # Send email using SendGrid
+        sg = SendGridAPIClient(sendgrid_api_key)
+        response = sg.send(message)
+        print(f"Email sent to {user_email}. Status Code: {response.status_code}")
+        return True
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return False
+
+class VerifyConfirmationCodeRequest(BaseModel):
+    email: str
+    code: str
+
+@fast_app.post("/verify_confirmation")
+async def verify_confirmation(request: VerifyConfirmationCodeRequest):
+    temp_user = temp_users_collection.find_one({"email": request.email})
+    if not temp_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if temp_user["confirmation_code"] == request.code:
+        # Create the new user document
+        new_user = {
+            "username": temp_user["username"],
+            "email": temp_user["email"],
+            "password": temp_user["password"],
+            "created_at": temp_user["created_at"],
+            "points": temp_user["points"],
+            "streak": temp_user["streak"],
+            "last_login": temp_user["last_login"],
+        }
+
+        # Try to insert the new user into the database
+        try:
+            users_collection.insert_one(new_user)
+            temp_users_collection.delete_one({"email": request.email})
+            return {"message": "Account confirmed successfully"}
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Error confirming account: {str(e)}")
+    else:
+        raise HTTPException(status_code=400, detail="Invalid confirmation code")
 
 @fast_app.post("/login")
 async def login(user: UserLogin):
@@ -340,8 +418,69 @@ async def login(user: UserLogin):
         )
 
         return JSONResponse(content={"message": "Login successful", "username": user.username})
-    
+
     raise HTTPException(status_code=401, detail="Invalid username or password")
+
+
+
+# @fast_app.post("/login")
+# async def login(user: UserLogin):
+#     db_user = users_collection.find_one({"username": user.username})
+#     if db_user and db_user["password"] == hash_password(user.password):
+#         print("Backend login successful for:", user.username)
+#         now = datetime.now()
+#         last_login = db_user.get("last_login")
+#         streak = db_user.get("streak", 0)
+
+#         # Check if preferences exist and frequency is set
+#         if "preferences" in db_user and "frequency" in db_user["preferences"]:
+#             # Check if it's time to send an email
+#             last_email_sent = db_user.get("last_email_sent")
+#             frequency_hours = db_user["preferences"]["frequency"]
+
+#             # If no last email sent or time since last email exceeds frequency
+#             if not last_email_sent or (now - last_email_sent).total_seconds() / 3600 >= frequency_hours:
+#                 # Fetch news articles
+#                 try:
+#                     # Use the existing get_news function to fetch articles
+#                     news_response = await get_news(user.username)
+#                     articles = news_response.get("articles", [])
+
+#                     # Send email if articles exist
+#                     if articles:
+#                         email_sent = send_news_summary_email(
+#                             user_email=db_user["email"],
+#                             username=user.username,
+#                             articles=articles,
+#                             summary_style=db_user["preferences"].get("summaryStyle", "brief")
+#                         )
+
+#                         # Update last email sent time if email was sent successfully
+#                         if email_sent:
+#                             users_collection.update_one(
+#                                 {"username": user.username},
+#                                 {"$set": {"last_email_sent": now}}
+#                             )
+#                 except Exception as e:
+#                     print(f"Error processing news for email: {e}")
+
+#         # Rest of your existing login logic remains the same
+#         if last_login:
+#             last_login_date = last_login.date()
+#             if now.date() == last_login_date + timedelta(days=1):
+#                 streak += 1  # Increment streak for consecutive days
+#             elif now.date() > last_login_date + timedelta(days=1):
+#                 streak = 0  # Reset streak for missed days
+
+#         # Update last_login and streak
+#         users_collection.update_one(
+#             {"username": user.username},
+#             {"$set": {"last_login": now, "streak": streak}}
+#         )
+
+#         return JSONResponse(content={"message": "Login successful", "username": user.username})
+    
+#     raise HTTPException(status_code=401, detail="Invalid username or password")
 
 # Endpoint to handle modifying of previously set user preferences
 @fast_app.put("/preferences/{username}")
