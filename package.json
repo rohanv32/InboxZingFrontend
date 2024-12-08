@@ -4,15 +4,19 @@
   "private": true,
   "proxy": "http://localhost:8000",
   "dependencies": {
+    "@chakra-ui/react": "^3.2.3",
+    "@emotion/react": "^11.13.5",
+    "@emotion/styled": "^11.13.5",
     "@headlessui/react": "^2.2.0",
     "@heroicons/react": "^2.1.5",
     "@tailwindcss/forms": "^0.5.9",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
+    "antd": "^5.22.3",
     "axios": "^1.7.7",
     "canvas-confetti": "^1.9.3",
-    "framer-motion": "^11.11.17",
+    "framer-motion": "^11.13.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.28.0",
@@ -47,7 +51,7 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.47",
-    "tailwindcss": "^3.4.14"
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.16"
   }
 }

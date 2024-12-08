@@ -5,6 +5,7 @@ const Podcast = ({ username }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
+    // fetch podcast script from backend API
     useEffect(() => {
         const fetchPodcast = async () => {
             setIsLoading(true);

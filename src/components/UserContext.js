@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import Swal from 'sweetalert2';
+import { ConfigProvider } from 'antd';
 
 export const defaultPreferences = {
   country: 'us',
@@ -116,3 +117,31 @@ export const useUserActions = () => {
   const { username, setUsername, isLoggedIn, setIsLoggedIn, preferences, setPreferences } = useUserContext();
   return { username, setUsername, isLoggedIn, setIsLoggedIn, preferences, setPreferences };
 };
+
+// // Theme context created to be accessible in the app
+// const ThemeContext = createContext();
+
+// // ThemeProvider component to provide the theme state to the app
+// export const ThemeProvider = ({ children }) => {
+  
+//   // Theme state
+//   const [themeMode, setThemeMode] = useState('Light');
+
+//   // Function to toggle between light and dark mode
+//   const toggleTheme = () => {
+//     setThemeMode((prevMode) => (prevMode === 'Light' ? 'Dark' : 'Light'));
+//   };
+
+//   // Setting for Dark and Light Theme
+//   const backgroundClass = themeMode === 'Light' ? 'bg-white' : 'bg-black';
+//   const textClass = themeMode === 'Light' ? 'text-black' : 'text-white';
+
+//   return (
+//     <ThemeContext.Provider value={{ themeMode, toggleTheme, backgroundClass, textClass }}>
+//       {children}
+//     </ThemeContext.Provider>
+//   );
+// };
+
+// // Custom hook to access theme context
+// export const useTheme = () => useContext(ThemeContext);

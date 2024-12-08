@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Home from './components/Home';
 import SignUp from './components/SignUp';
@@ -13,6 +13,8 @@ import Podcast from './components/Podcast'
 import { useNavigate } from 'react-router-dom';
 import EarnPoint from './components/EarnPoint';
 import Swal from 'sweetalert2';
+import { FloatButton, ConfigProvider, theme as antTheme } from 'antd';
+import { MoonOutlined, SunOutlined } from '@ant-design/icons'; // Add icons for light/dark mode
 
 function App() {
   const context = useUserContext();  // Get context from the UserProvider
@@ -24,6 +26,15 @@ function App() {
   const [newsArticles, setNewsArticles] = useState([]);
   const navigate = useNavigate();
 
+  // Theme state
+  const [themeMode, setThemeMode] = useState('Light');
+
+  // Function to toggle between light and dark mode
+  const toggleTheme = () => {
+    setThemeMode((prevMode) => (prevMode === 'Light' ? 'Dark' : 'Light'));
+  };
+  
+  // Function to fetch user credentials from backend API
   const handleLogin = async (credentials) => {
     try {
       const response = await fetch('/login', {
@@ -229,26 +240,45 @@ function App() {
     }
   }, []);
 
+  // Dark and Light Mode Algorithm from Ant Design
+  const antThemeConfig = {
+    algorithm: themeMode === 'Dark' ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,
+  };
+
   return (
     <UserProvider> {/* Ensure UserContext is available */}
-       <Header
-        isLoggedIn={isLoggedIn}
-        onLogout={handleLogout}
-        onTabChange={handleTabChange}
-        onLogoClick={handleLogoClick}
-      />
-      <Routes>
-        <Route path="/" element={<Home onTabChange={handleTabChange}/>} />
-        <Route path="/signup" element={!isLoggedIn ? <SignUp onSignUp={handleSignUp} onNavigateToLogin={handleNavigateToLogin} /> : <Navigate to="/preferences" />} />
-        <Route path="/login" element={!isLoggedIn ? <Login onLogin={handleLogin} onNavigateToSignUp={handleNavigateToSignUp}/> : <Navigate to="/newsfeed" />} />
-        <Route path="/preferences" element={(isLoggedIn || isRedirectedFromSignUp) ? <Preferences onUpdateComplete={handleUpdateComplete} username={username} /> : <Navigate to="/login" />} />
-        <Route path="/newsfeed" element={isLoggedIn ? <NewsFeed newsArticles={newsArticles} username={username} /> : <Navigate to="/login" />} />
-        <Route path="/deleteuser" element={isLoggedIn ? <DeleteUser onDelete={handleDeleteAccount} username={username} /> : <Navigate to="/" />} />
-        <Route path="/profile" element={isLoggedIn ? <Profile onNavigatetoPreferences={handleNavigateToPreferences} username={username} /> : <Navigate to="/login" />} />
-        <Route path="/podcast" element={isLoggedIn ? <Podcast username={username} /> : <Navigate to="/login" />} />
-        <Route path="/earnpoint" element={(isLoggedIn || isRedirectedFromSignUp) ? <EarnPoint /> : <Navigate to="/login" />} />
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
+      <ConfigProvider theme={antThemeConfig}>
+        <div className={`app ${themeMode === 'Dark' ? 'dark-theme' : 'light-theme'}`}>
+            <FloatButton
+              type="primary"
+              icon={themeMode === 'Light' ? <SunOutlined /> : <MoonOutlined />}
+              onClick={toggleTheme}
+              style={{
+                position: 'fixed',
+                bottom: 24,
+                right: 24,
+              }}
+            />
+            <Header
+              isLoggedIn={isLoggedIn}
+              onLogout={handleLogout}
+              onTabChange={handleTabChange}
+              onLogoClick={handleLogoClick}
+            />
+            <Routes>
+              <Route path="/" element={<Home onTabChange={handleTabChange}/>} />
+              <Route path="/signup" element={!isLoggedIn ? <SignUp onSignUp={handleSignUp} onNavigateToLogin={handleNavigateToLogin} /> : <Navigate to="/preferences" />} />
+              <Route path="/login" element={!isLoggedIn ? <Login onLogin={handleLogin} onNavigateToSignUp={handleNavigateToSignUp}/> : <Navigate to="/newsfeed" />} />
+              <Route path="/preferences" element={(isLoggedIn || isRedirectedFromSignUp) ? <Preferences onUpdateComplete={handleUpdateComplete} username={username} /> : <Navigate to="/login" />} />
+              <Route path="/newsfeed" element={isLoggedIn ? <NewsFeed newsArticles={newsArticles} username={username} /> : <Navigate to="/login" />} />
+              <Route path="/deleteuser" element={isLoggedIn ? <DeleteUser onDelete={handleDeleteAccount} username={username} /> : <Navigate to="/" />} />
+              <Route path="/profile" element={isLoggedIn ? <Profile onNavigatetoPreferences={handleNavigateToPreferences} username={username} /> : <Navigate to="/login" />} />
+              <Route path="/podcast" element={isLoggedIn ? <Podcast username={username} /> : <Navigate to="/login" />} />
+              <Route path="/earnpoint" element={(isLoggedIn || isRedirectedFromSignUp) ? <EarnPoint /> : <Navigate to="/login" />} />
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+        </div>
+      </ConfigProvider>
     </UserProvider>
   );
 }

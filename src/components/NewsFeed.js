@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useUserContext } from './UserContext';
+import '../App.css';
 
 function NewsFeed({ newsArticles, username }) {
   console.log("Username in NewsFeed:", username);
@@ -23,6 +24,7 @@ function NewsFeed({ newsArticles, username }) {
       return;
     }
 
+    // Fetch news articles from backend News API
     const fetchArticles = async () => {
       try {
         const response = await fetch(`/news/${username}`);
@@ -43,6 +45,7 @@ function NewsFeed({ newsArticles, username }) {
     fetchArticles();
   }, [username]);  // Only depend on username
 
+  // Earn point by clicking on article and read it for x seconds specified below
   const handleArticleClick = (article) => {
     setStartTime(Date.now()); // Start the timer
     setSelectedArticle(article);
@@ -177,10 +180,10 @@ function NewsFeed({ newsArticles, username }) {
   
           <div className="mb-4">
             <h2 className="text-2xl font-semibold mb-2">{selectedArticle.title}</h2>
-            <p className="text-sm text-gray-600">Source: {selectedArticle.source}</p>
+            <p className="text-sm">Source: {selectedArticle.source}</p>
           </div>
   
-          <div className="border border-gray-200 rounded-sm">
+          <div className="border rounded-sm">
             <div className="bg-[#E8E8E8] p-6">
               <p className="text-base leading-relaxed">{selectedArticle.summary}</p>
               
@@ -197,7 +200,7 @@ function NewsFeed({ newsArticles, username }) {
           <div className="flex gap-4 mt-8">
             <button
               onClick={handleBackToFeed}
-              className="flex-1 bg-[#D5C3C6] rounded-sm py-3 text-black hover:bg-[#c8b2b5] transition-colors"
+              className="flex-1 bg-[#D5C3C6] rounded-sm py-3 hover:bg-[#c8b2b5] transition-colors"
             >
               Back to Feed
             </button>
@@ -206,7 +209,7 @@ function NewsFeed({ newsArticles, username }) {
               href={selectedArticle.url}
               target="_blank"
               rel="noopener noreferrer" 
-              className="flex-1 bg-[#E8E8E8] rounded-sm py-3 text-black text-center hover:bg-[#dbdbdb] transition-colors"
+              className="flex-1 bg-[#E8E8E8] rounded-sm py-3 text-center hover:bg-[#dbdbdb] transition-colors"
             >
               Go to Source
             </a>
@@ -230,9 +233,9 @@ function NewsFeed({ newsArticles, username }) {
                 onClick={() => handleArticleClick(article)}
                 className={`flex ${index % 2 === 0 ? '' : 'flex-row-reverse'} cursor-pointer`}
               >
-                <div className="w-1/2 p-4 bg-[#E8E8E8]">
+                <div className="w-1/2 p-4 border border-gray-400">
                   <h3 className="font-semibold mb-2">{article.title}</h3>
-                  <p className="text-sm">{article.description}</p>
+                  <p className="text-sm" news-feed-background >{article.description}</p>
                   <p className="text-sm mt-2">Source: {article.source}</p>
                 </div>
                 <div className="w-1/2 bg-[#D5C3C6] flex items-center justify-center">
@@ -243,7 +246,7 @@ function NewsFeed({ newsArticles, username }) {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <span className="text-4xl text-gray-400">×</span>
+                    <span className="text-4xl">×</span>
                   )}
                 </div>
               </div>

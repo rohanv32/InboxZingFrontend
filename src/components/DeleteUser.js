@@ -45,7 +45,6 @@ function DeleteUser({ onDelete, username }) {
     navigate('/newsfeed');
   };
 
-
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="max-w-md w-full p-8 text-center">
