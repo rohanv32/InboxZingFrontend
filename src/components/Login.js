@@ -177,7 +177,7 @@ function Login({ onLogin, onNavigateToSignUp }) {
           <div>
             <button
               type="submit"
-              className="w-full flex justify-center rounded-sm bg-[#D5C3C6] py-2 px-4 text-black"
+              className="w-full flex justify-center rounded-sm bg-[#D5C3C6] py-2 px-4"
             >
               Login
             </button>
@@ -187,7 +187,7 @@ function Login({ onLogin, onNavigateToSignUp }) {
             <a
               href="#"
               onClick={(e) => { e.preventDefault(); onForgotPassword(); }}
-              className="text-black underline"
+              className="underline"
             >
               Forgot password?
             </a>
@@ -198,7 +198,7 @@ function Login({ onLogin, onNavigateToSignUp }) {
             <button
               type="button"
               onClick={() => navigate('/signup')}
-              className="text-black underline"
+              className="underline"
             >
               Sign up
             </button>
@@ -236,7 +236,7 @@ function ForgotPassword({ email, onEmailChange, onSubmit, notification, onBack }
           <div>
             <button
               type="submit"
-              className="w-full flex justify-center rounded-sm bg-[#D5C3C6] py-2 px-4 text-black"
+              className="w-full flex justify-center rounded-sm bg-[#D5C3C6] py-2 px-4"
             >
               Send Verification Email
             </button>
@@ -251,7 +251,7 @@ function ForgotPassword({ email, onEmailChange, onSubmit, notification, onBack }
           <button
             type="button"
             onClick={onBack}
-            className="text-black underline"
+            className="underline"
           >
             Back to Login
           </button>
